@@ -5,7 +5,10 @@ node_modules/
 .nuxt/
 .output/
 dist/
-.data/                 # cache de build de Nuxt Content
+# Cache de build de Nuxt Content. Le commentaire est sur SA PROPRE ligne :
+# git ne reconnait pas les commentaires en fin de ligne, « .data/ # cache »
+# serait un motif litteral qui ne filtre rien.
+.data/
 
 # Capacitor — projets natifs régénérés par « npx cap add »
 android/
