@@ -87,6 +87,7 @@ Le store `vote` porte en plus l'abonnement Realtime : un seul canal ouvert à la
 | `geo.ts` | Distance haversine — base de la proximité et de l'ordonnancement |
 | `slug.ts` | Extrait le slug du `stem` Nuxt Content v3 (`pois/chateau-de-caen` donne `chateau-de-caen`) |
 | `arTransform.ts` | Projette un point de la cible (0-1) vers l'écran via les matrices MindAR |
+| `ics.ts` | Génère un fichier iCalendar (RFC 5545) pour l'ajout à l'agenda depuis le navigateur |
 | `voteAggregation.ts` | Agrège les votes d'un groupe : approbation par POI, **médiane** des préférences de nombre et de durée, puis ordonnancement au plus proche voisin |
 
 ## Système multi-ville
@@ -165,6 +166,26 @@ Deux verrous, tous deux constatés à l'usage :
 **Le piège de l'upsert** : `.upsert(…, { onConflict: 'group_id,user_id' })` — sans `onConflict`, PostgREST vise la clé primaire, qui ne peut jamais entrer en conflit puisqu'elle est générée. L'insertion se heurte alors à la contrainte unique et rend un `409` au lieu de mettre à jour.
 
 **Le piège du DELETE en Realtime** : un `DELETE` ne transporte que l'identité de réplique. Sans `REPLICA IDENTITY FULL`, l'événement ne porte que la clé primaire — pas le `poi_slug`. Le store recharge donc au lieu de deviner ; c'est le prix à payer pour ne pas alourdir le WAL de toutes les colonnes.
+
+## Flux typique — mettre le parcours à l'agenda
+
+Deux chemins, une seule intention. Sur mobile, `createEventWithPrompt` ouvre l'éditeur d'événement du système, prérempli ; sur le web, un fichier `.ics` est produit et téléchargé.
+
+**Pourquoi le prompt et non l'écriture directe.** `createEvent` exigerait la permission d'écriture au calendrier — une demande intrusive pour une action que l'utilisateur vient précisément de déclencher. Le prompt lui montre l'événement, le laisse choisir son agenda et corriger l'heure. Aucune permission, et il garde la main.
+
+L'import du plugin natif est **dynamique** : sur le web, ce module n'a rien à faire dans le bundle.
+
+La durée annoncée n'est pas celle de la marche seule : on ajoute 15 minutes par lieu, sans quoi l'agenda afficherait une sortie deux fois trop courte. L'`UID` est dérivé du groupe, donc stable — rejouer l'ajout met l'événement à jour au lieu de le dupliquer.
+
+### Les trois règles d'iCalendar qu'on oublie
+
+Un fichier mal formé est refusé **sans message** par la moitié des agendas :
+
+1. **Les fins de ligne sont CRLF**, pas LF. Google Agenda tolère, Outlook non.
+2. **`\`, `;`, `,` et les retours à la ligne s'échappent** dans les champs texte. Une virgule non échappée dans un titre coupe la valeur.
+3. **Les lignes de plus de 75 octets se plient**, la suite préfixée d'une espace. Le compte est en **octets**, pas en caractères : couper au milieu d'un caractère UTF-8 produit un fichier illisible — et « Cathédrale » suffit à déclencher le cas.
+
+`verif/ics.ts` éprouve les trois, accents à la frontière de pliage compris.
 
 ## Flux typique — suivre le parcours du groupe
 

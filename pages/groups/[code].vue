@@ -153,6 +153,13 @@ async function rafraichir() {
           Suivre ce parcours sur la carte
         </button>
 
+        <AgendaForm
+          :decision="decisionStore.current!"
+          :pois="poisDuGroupe"
+          :nom-du-groupe="groupStore.currentGroup.name"
+          :ville="groupStore.currentGroup.city === 'caen' ? 'Caen' : 'Troyes'"
+        />
+
         <p class="decision-aide">
           Les lieux coches le sont pour tout le groupe : chacun voit l'avancee
           des autres pendant la visite.

@@ -18,7 +18,7 @@ Topologie rapide — le dépôt **est** l'application, sans sous-dossier interm�
 - `components/` — vues par domaine : `map/`, `poi/`, `route/`, `ar/`, `group/`, `ui/`
 - `composables/` — capteurs et logique réutilisable (géoloc, proximité, caméra, tracking, itinéraire)
 - `stores/` — état global Pinia : `city`, `route`, `puzzle`, `auth`, `group`, `vote`, `decision`, `groupRoute`
-- `utils/` — fonctions pures sans dépendance Vue (géométrie, agrégation de votes, slugs) ; **importer explicitement** entre fichiers d'`utils/` plutôt que de compter sur l'auto-import de Nuxt, sinon ils ne s'exécutent plus hors du runtime
+- `utils/` — fonctions pures sans dépendance Vue (géométrie, agrégation de votes, iCalendar, slugs), vérifiées par `verif/` ; **importer explicitement** entre fichiers d'`utils/` plutôt que de compter sur l'auto-import de Nuxt, sinon ils ne s'exécutent plus hors du runtime
 - `supabase/schema.sql` — schéma, RLS et fonctions de la couche groupes
 - `scripts/` — outillage hors-app : téléchargement des tuiles, compilation des cibles AR
 
@@ -52,7 +52,7 @@ Topologie rapide — le dépôt **est** l'application, sans sous-dossier interm�
 1. **Exploration** — lire les fichiers adjacents pour calquer les patterns ; pour du contenu, copier un POI ou un parcours existant de la même ville.
 2. **Planification** — soumettre l'approche pour tout changement non trivial (schéma Supabase, système AR, structure du contenu).
 3. **Implémentation** — changement minimal, dans la couche qui en a la responsabilité.
-4. **Vérification** — `npm run typecheck` puis `npm run generate` : le projet n'a **aucun harnais de test** ; le typage strict et un build statique réussi sont les seuls filets. Tout comportement GPS, caméra ou tactile se valide sur appareil (`npx cap run android`), jamais au clavier.
+4. **Vérification** — `npm run typecheck`, `npm run verif`, puis `npm run generate`. Le projet n'a pas de harnais de test, mais `verif/` exécute les fonctions pures de `utils/` avec `tsx`, contre la vraie implémentation : c'est là qu'un comportement se fige. Le typage strict et un build statique réussi complètent le filet. Tout comportement GPS, caméra ou tactile se valide sur appareil (`npx cap run android`), jamais au clavier.
 
 `typecheck` sort une erreur connue : `mind-ar` ne publie pas de déclarations TypeScript, d'où un `TS7016` sur l'import de `composables/useImageTracking.ts`. Tant qu'aucun `.d.ts` ne déclare ce module, c'est la **seule** erreur attendue — toute autre est une régression.
 
@@ -64,6 +64,7 @@ Topologie rapide — le dépôt **est** l'application, sans sous-dossier interm�
 npm install
 npm run dev                      # dev en HTTPS, certificat auto-genere (cf. nuxt.config.ts)
 npm run typecheck                # vue-tsc — la vérification de référence
+npm run verif                    # exécute les fonctions pures de utils/ (tsx, sans harnais)
 npm run generate                 # build statique offline → .output/public
 npm run download-tiles           # tuiles OSM des deux villes (-- caen | -- troyes pour une seule)
 npm run compile-targets          # compile les cibles AR (.mind) depuis assets/targets/raw/

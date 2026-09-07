@@ -178,8 +178,11 @@ create policy "prefs: update own" on preference_votes
 
 create policy "visited: members select" on visited_pois
   for select using (is_group_member(group_id));
+-- « user_id = auth.uid() » en plus de l'appartenance : sans lui, un membre peut
+-- ecrire une ligne au nom d'un autre. La checklist resterait juste, mais
+-- l'attribution affichee (« coche par X ») serait falsifiable.
 create policy "visited: members check-off" on visited_pois
-  for insert with check (is_group_member(group_id));
+  for insert with check (is_group_member(group_id) and user_id = auth.uid());
 create policy "visited: members uncheck" on visited_pois
   for delete using (is_group_member(group_id));
 

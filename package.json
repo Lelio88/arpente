@@ -11,7 +11,8 @@
     "postinstall": "nuxt prepare",
     "typecheck": "nuxt typecheck",
     "download-tiles": "tsx scripts/download-tiles.ts",
-    "compile-targets": "tsx scripts/compile-targets.ts"
+    "compile-targets": "tsx scripts/compile-targets.ts",
+    "verif": "tsx verif/agregation.ts && tsx verif/ics.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.0",
