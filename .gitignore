@@ -1,0 +1,9 @@
+# Local Claude Code settings (machine-specific)
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Scratch/debug notes (console log dump, no lasting value)
+resume.md

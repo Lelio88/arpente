@@ -1,0 +1,19 @@
+---
+title: "Caen Gourmand"
+description: "Circuit gastronomique a travers les marches, rues commercantes et restaurants"
+duration: "2h30"
+distance: "3.5 km"
+difficulty: "facile"
+color: "#2a9d8f"
+pois:
+  - slug: "marche-de-caen"
+    note: "Decouvrez les produits locaux et la gastronomie normande au marche dominical."
+  - slug: "place-saint-sauveur"
+    note: "Place animee accueillant un grand marche le vendredi."
+  - slug: "rue-froide"
+    note: "Petite rue charmante pleine de boutiques et de petits commerces de bouche."
+  - slug: "quartier-vaugueux"
+    note: "Le quartier historique par excellence pour trouver de bons restaurants traditionnels."
+  - slug: "bassin-saint-pierre"
+    note: "Profitez d'un verre en terrasse sur le port de plaisance au coeur de la ville."
+---

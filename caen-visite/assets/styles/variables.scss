@@ -1,0 +1,66 @@
+// Couleurs principales
+$color-primary: #1a1a2e;
+$color-secondary: #16213e;
+$color-accent: #0f3460;
+$color-highlight: #e94560;
+$color-success: #00ffaa;
+$color-text: #eaeaea;
+$color-text-muted: #8a8a9a;
+$color-surface: #1e1e30;
+$color-surface-elevated: #2a2a40;
+
+// Couleurs des categories de POI
+$color-monument: #e94560;
+$color-eglise: #c77dff;
+$color-ww2: #577590;
+$color-architecture: #f4a261;
+$color-gastronomie: #2a9d8f;
+$color-romantique: #ff6b9d;
+
+// Couleurs des parcours
+$color-route-medieval: #8b4513;
+$color-route-ww2: #577590;
+$color-route-architecture: #f4a261;
+$color-route-gourmand: #2a9d8f;
+$color-route-romantique: #ff6b9d;
+
+// Espacements
+$spacing-xs: 0.25rem;
+$spacing-sm: 0.5rem;
+$spacing-md: 1rem;
+$spacing-lg: 1.5rem;
+$spacing-xl: 2rem;
+$spacing-2xl: 3rem;
+
+// Border radius
+$radius-sm: 0.5rem;
+$radius-md: 1rem;
+$radius-lg: 1.5rem;
+$radius-full: 50%;
+
+// Bottom sheet
+$bottom-sheet-peek: 60px;
+$bottom-sheet-half: 40vh;
+$bottom-sheet-full: 90vh;
+
+// Z-index
+$z-map: 1;
+$z-ui: 10;
+$z-bottom-sheet: 20;
+$z-navbar: 30;
+$z-ar-overlay: 40;
+$z-modal: 50;
+
+// Transitions
+$transition-fast: 150ms ease;
+$transition-normal: 300ms ease;
+$transition-slow: 500ms ease;
+
+// Typographie
+$font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+$font-size-xs: 0.75rem;
+$font-size-sm: 0.875rem;
+$font-size-md: 1rem;
+$font-size-lg: 1.25rem;
+$font-size-xl: 1.5rem;
+$font-size-2xl: 2rem;

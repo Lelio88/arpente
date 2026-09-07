@@ -1,0 +1,57 @@
+id: "meurtriere-01"
+title: "Meurtriere de la Tour Nord"
+location:
+  lat: 49.1851
+  lng: -0.3708
+  hint: "Face nord, premiere tour a gauche en entrant"
+difficulty: 1
+target:
+  mindFile: "/targets/meurtriere-01.mind"
+  imageIndex: 0
+path:
+  startPoint:
+    x: 0.5
+    y: 0.82
+  points:
+    # Depart : bord droit du cercle en bas
+    - x: 0.5
+      y: 0.82
+    # Arc de cercle (quart bas-droit)
+    - x: 0.58
+      y: 0.78
+    # Arc (quart haut-droit)
+    - x: 0.58
+      y: 0.72
+    # Sommet du cercle
+    - x: 0.5
+      y: 0.68
+    # Arc (quart haut-gauche)
+    - x: 0.42
+      y: 0.72
+    # Arc (quart bas-gauche)
+    - x: 0.42
+      y: 0.78
+    # Retour au bas du cercle
+    - x: 0.5
+      y: 0.82
+    # Jonction cercle-fente
+    - x: 0.5
+      y: 0.68
+    # Remontee de la fente verticale
+    - x: 0.5
+      y: 0.5
+    - x: 0.5
+      y: 0.3
+    # Sommet de la fente
+    - x: 0.5
+      y: 0.1
+  tolerance: 30
+  style:
+    color: "#00FFAA"
+    width: 6
+    glowColor: "rgba(0, 255, 170, 0.25)"
+    glowWidth: 20
+successMessage: "Bravo ! Cette meurtriere permettait aux archers de couvrir l'angle mort de la courtine nord."
+reward:
+  type: "anecdote"
+  text: "Les meurtieres du chateau de Caen sont parmi les mieux conservees de Normandie. Le trou rond a la base, appele 'oeilleton', servait a elargir le champ de tir de l'arbaletrier tout en restant protege par l'epaisseur du mur."

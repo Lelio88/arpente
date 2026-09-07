@@ -1,0 +1,41 @@
+title: "Caen Medieval"
+description: "Plongez dans le Caen du Moyen Age, des abbayes fondees par Guillaume le Conquerant aux remparts du chateau."
+duration: "2h30"
+distance: "4.2 km"
+difficulty: "facile"
+color: "#8B4513"
+pois:
+  - slug: chateau-de-caen
+    note: "Point de depart — montez sur les remparts pour la vue"
+  - slug: eglise-saint-pierre
+    note: "Chef-d'oeuvre du gothique flamboyant"
+  - slug: abbaye-aux-hommes
+    note: "Fondee par Guillaume, elle abrite sa tombe"
+  - slug: abbaye-aux-dames
+    note: "Fondee par Mathilde, epouse de Guillaume"
+  - slug: eglise-saint-nicolas
+    note: "Eglise romane oubliee, figee dans le temps depuis la Revolution"
+  - slug: salle-de-l-echiquier
+    note: "Salle d'apparat romane du XIIe siecle, l'un des plus anciens batiments civils de France"
+  - slug: eglise-saint-sauveur
+    note: "Curiosite architecturale unique : deux nefs paralleles imbriquees"
+  - slug: musee-de-normandie
+    note: "Logis medieval du chateau et collection sur l'histoire normande"
+  - slug: chapelle-saint-georges
+    note: "Chapelle romane intime cachee contre les remparts du chateau"
+  - slug: porte-des-champs
+    note: "Porte medievale sud du chateau, deux tours rondes et rainures de herse"
+  - slug: vestiges-du-donjon
+    note: "Fondations du donjon disparu, coeur du pouvoir normand"
+  - slug: eglise-saint-michel-de-vaucelles
+    note: "Eglise romano-gothique survivante des bombardements de 1944"
+  - slug: eglise-saint-ouen
+    note: "Eglise gothique fondee par Guillaume le Conquerant, en sursis structurel"
+  - slug: barbacane-saint-pierre
+    note: "Porte fortifiee batie par les Anglais au XVe siecle, entree principale du chateau"
+  - slug: vestiges-eglise-saint-gilles
+    note: "Vestiges medievaux de Saint-Gilles, paroisse haute des hauteurs"
+  - slug: pont-de-vaucelles
+    note: "Entree historique sud de la ville depuis le IXe siecle"
+  - slug: tour-de-la-reine-mathilde
+    note: "Tour d'artillerie XIIIe siecle, six chambres de tir au flanc est du chateau"
