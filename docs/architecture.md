@@ -77,6 +77,7 @@ Le store `vote` porte en plus l'abonnement Realtime : un seul canal ouvert à la
 | `auth` | Session anonyme Supabase, pseudo (`profiles.handle`) | Supabase + Preferences (natif) |
 | `group` | Groupes du membre, groupe courant, roster | Supabase |
 | `vote` | Approbations par POI, préférences de chaque membre, canal temps réel | Supabase + WebSocket |
+| `decision` | Dernier parcours arrêté du groupe | Supabase |
 
 ## Utilitaires purs
 
@@ -116,7 +117,11 @@ Le backend n'est **pas** un projet Supabase cloud : le plan gratuit plafonne à 
 
 Trois fonctions `security definer` portent la logique sensible : `generate_join_code()` (alphabet sans `O`/`0` ni `I`/`1`, ambigus à l'oral), `preview_group_by_code()` et `join_group_by_code()` — elles permettent de rejoindre un groupe **sans exposer la table `groups` en lecture**. `is_group_member()` est également `security definer` : une policy sur `group_members` qui se référencerait elle-même provoquerait une récursion RLS.
 
-`utils/voteAggregation.ts` implémente l'agrégation complète ; l'écran de groupe affiche le roster et n'appelle pas cette fonction.
+`utils/voteAggregation.ts` produit le parcours : il retient les POI les mieux soutenus, en nombre égal à la **médiane** des envies du groupe, puis les relie de proche en proche. Le store `decision` l'appelle, mesure le trajet et écrit le résultat dans `decided_routes`.
+
+**La décision est un instantané, pas un calcul permanent.** Un vote qui arrive après ne la modifie pas : le groupe part avec le parcours qu'il a validé, et non avec un itinéraire qui bougerait sous ses pieds en cours de visite. Redécider écrit une **nouvelle ligne** — l'historique reste lisible, et c'est pourquoi la table n'a ni `update` ni contrainte d'unicité par groupe.
+
+La distance vient d'OSRM quand le réseau répond, de la somme des haversines sinon. L'écart est réel — à pied, en ville, le trajet fait couramment 30 % de plus que la ligne droite — d'où le marqueur « à vol d'oiseau » dans l'interface : une approximation ne doit jamais s'afficher comme une mesure.
 
 ### Deux pièges que seul un essai réel révèle
 
@@ -125,6 +130,13 @@ Trois fonctions `security definer` portent la logique sensible : `generate_join_
 **Le créateur doit pouvoir relire son groupe.** Le client fait `.insert(…).select().single()`, et ce `RETURNING` exige que la ligne soit lisible **immédiatement**. Or l'adhésion du créateur intervient à l'appel suivant : une policy limitée à `is_group_member(id)` rendait donc la ligne invisible à celui qui venait de l'écrire, et Postgres rejetait l'insertion entière. La clause `or created_by = auth.uid()` ferme le trou — sans elle, personne ne peut connaître le code d'invitation de son propre groupe.
 
 Les deux bugs ont survécu à la relecture et au typage : ils ne vivent ni dans le TypeScript ni dans le SQL isolément, mais dans leur rencontre à l'exécution.
+
+### Ce qui ne peut pas être supprimé
+
+Deux verrous, tous deux constatés à l'usage :
+
+- **Un groupe ne se supprime pas.** Il n'existe aucune policy `DELETE` sur `groups`. PostgREST répond pourtant `204` : sous RLS, une ligne invisible à la suppression n'est pas une erreur, simplement zéro ligne affectée. Un groupe créé par erreur reste donc indéfiniment, et les `on delete cascade` des tables enfants ne se déclenchent jamais. À trancher si le besoin apparaît — qui aurait le droit : le créateur seul, ou tout membre ?
+- Un `DELETE` qui « réussit » sans rien supprimer est précisément le genre de piège qu'un essai réel révèle et qu'une relecture laisse passer.
 
 ### Suppression d'un compte
 

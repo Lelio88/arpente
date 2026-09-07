@@ -1,4 +1,8 @@
 import type { Coordinates } from '~/types'
+// Import explicite plutot que l'auto-import de Nuxt : sans lui, ce fichier
+// dependrait du runtime Nuxt pour resoudre haversineDistance et ne pourrait
+// pas etre execute seul — or c'est precisement la vocation de utils/.
+import { haversineDistance } from './geo'
 
 export interface AggregationInput {
   approvals: Record<string, string[]> // poiSlug -> userIds ayant approuve ce POI

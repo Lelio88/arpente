@@ -3,6 +3,7 @@ import type { Poi } from '~/types'
 import { useAuthStore } from '~/stores/auth'
 import { useGroupStore } from '~/stores/group'
 import { useVoteStore } from '~/stores/vote'
+import { useDecisionStore } from '~/stores/decision'
 
 const route = useRoute()
 const code = (route.params.code as string).toUpperCase()
@@ -10,9 +11,11 @@ const code = (route.params.code as string).toUpperCase()
 const authStore = useAuthStore()
 const groupStore = useGroupStore()
 const voteStore = useVoteStore()
+const decisionStore = useDecisionStore()
 
 const loadError = ref<string | null>(null)
 const isLoading = ref(true)
+const decisionError = ref<string | null>(null)
 
 // Le contenu est embarque dans le build : les POI sont disponibles hors ligne,
 // meme si le vote, lui, exige le reseau.
@@ -49,7 +52,7 @@ onMounted(async () => {
 
     const groupe = groupStore.currentGroup
     if (groupe) {
-      await voteStore.load(groupe.id)
+      await Promise.all([voteStore.load(groupe.id), decisionStore.load(groupe.id)])
       voteStore.subscribe(groupe.id)
     }
   } catch {
@@ -59,10 +62,42 @@ onMounted(async () => {
   }
 })
 
+/** Positions des POI de la ville, indexees par slug — l'agregateur en a besoin. */
+const coordonneesParSlug = computed(() =>
+  Object.fromEntries(poisDuGroupe.value.map(p => [p.slug, { lat: p.lat, lng: p.lng }])))
+
+const nbApprouves = computed(() =>
+  Object.values(voteStore.approvals).filter(m => m.length > 0).length)
+
+const auteurDecision = computed(() => {
+  const id = decisionStore.current?.decidedBy
+  return groupStore.members.find(m => m.userId === id)?.handle ?? 'un membre'
+})
+
+async function deciderLeParcours() {
+  const groupe = groupStore.currentGroup
+  if (!groupe || !authStore.userId) return
+
+  decisionError.value = null
+  try {
+    await decisionStore.decide(
+      groupe.id, authStore.userId, groupe.city,
+      voteStore.approvals, voteStore.preferences, coordonneesParSlug.value,
+    )
+    groupe.status = 'decided'
+  }
+  catch (e: any) {
+    decisionError.value = e?.message === 'aucun_poi_approuve'
+      ? 'Aucun lieu n\'a encore ete approuve : cochez-en au moins un.'
+      : 'La decision n\'a pas pu etre enregistree.'
+  }
+}
+
 // Sans cela, quitter la page laisse le canal ouvert : les evenements continuent
 // d'arriver et s'accumulent au groupe suivant.
 onBeforeUnmount(() => {
   voteStore.reset()
+  decisionStore.reset()
 })
 
 async function rafraichir() {
@@ -91,6 +126,15 @@ async function rafraichir() {
       <section class="group-section">
         <h2>Membres</h2>
         <GroupMemberList :members="groupStore.members" />
+      </section>
+
+      <section v-if="decisionStore.hasDecision" class="group-section">
+        <h2>Le parcours du groupe</h2>
+        <DecidedRouteCard
+          :decision="decisionStore.current!"
+          :pois="poisDuGroupe"
+          :auteur="auteurDecision"
+        />
       </section>
 
       <section class="group-section">
@@ -124,6 +168,34 @@ async function rafraichir() {
           :user-id="authStore.userId!"
           :member-count="groupStore.members.length"
         />
+      </section>
+
+      <section class="group-section">
+        <p v-if="decisionError" class="decision-erreur">{{ decisionError }}</p>
+
+        <button
+          class="bouton-decider"
+          type="button"
+          :disabled="decisionStore.isDeciding || nbApprouves === 0"
+          @click="deciderLeParcours"
+        >
+          <template v-if="decisionStore.isDeciding">Calcul du parcours...</template>
+          <template v-else-if="decisionStore.hasDecision">Redecider le parcours</template>
+          <template v-else>Decider le parcours</template>
+        </button>
+
+        <p class="decision-aide">
+          <template v-if="nbApprouves === 0">
+            Approuvez au moins un lieu pour pouvoir decider.
+          </template>
+          <template v-else>
+            Les lieux les plus soutenus sont retenus, en nombre egal a la mediane
+            des envies du groupe, puis relies de proche en proche.
+            <template v-if="decisionStore.hasDecision">
+              Redecider ecrit un nouveau parcours sans effacer le precedent.
+            </template>
+          </template>
+        </p>
       </section>
     </template>
   </div>
@@ -209,6 +281,36 @@ async function rafraichir() {
   font-size: $font-size-sm;
   color: $color-text-muted;
   margin-bottom: $spacing-md;
+}
+
+.bouton-decider {
+  width: 100%;
+  padding: $spacing-md;
+  background: $color-success;
+  border: none;
+  border-radius: $radius-sm;
+  color: $color-primary;
+  font-size: $font-size-md;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:disabled {
+    background: $color-surface-elevated;
+    color: $color-text-muted;
+    cursor: not-allowed;
+  }
+}
+
+.decision-aide {
+  font-size: $font-size-xs;
+  color: $color-text-muted;
+  margin-top: $spacing-sm;
+}
+
+.decision-erreur {
+  font-size: $font-size-sm;
+  color: $color-highlight;
+  margin-bottom: $spacing-sm;
 }
 
 .bouton-rafraichir {
