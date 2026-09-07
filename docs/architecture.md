@@ -48,7 +48,7 @@ Le sens de dépendance descend toujours : une page peut appeler un store et un c
 | `components/poi/` | `BottomSheet.vue` — volet à trois positions (`peek` / `half` / `full`), déclenché par la proximité |
 | `components/route/` | Carte de parcours, checklist des étapes, suivi de progression |
 | `components/ar/` | Flux caméra, reconnaissance de cible MindAR, overlay Canvas du tracé, animation de réussite |
-| `components/group/` | Création et adhésion d'un groupe, demande de pseudo, liste des membres |
+| `components/group/` | Création et adhésion d'un groupe, demande de pseudo, liste des membres, vote sur les POI (`PoiVoteList`) et préférences de parcours (`PreferenceForm`) |
 | `components/ui/` | Barre de navigation, sélecteur de ville, écran de démarrage |
 | `content/` | 151 POI, 12 parcours, 8 tips, 1 puzzle — la donnée éditoriale, versionnée avec le code |
 | `scripts/` | Hors-app : téléchargement des tuiles OSM, compilation des cibles AR |
@@ -65,6 +65,8 @@ Le sens de dépendance descend toujours : une page peut appeler un store et un c
 | `usePuzzle` | Machine à états du tracé : `idle → scanning → tracking → success/fail`, tolérance et validation |
 | `useSupabase` | Renvoie le client injecté par le plugin, ou lève si Supabase n'est pas configuré |
 
+Le store `vote` porte en plus l'abonnement Realtime : un seul canal ouvert à la fois, fermé au démontage de la page. Sans cette discipline, changer de groupe accumule les abonnements et les événements arrivent en double.
+
 ## Stores — état global
 
 | Store | Contenu | Persistance |
@@ -74,6 +76,7 @@ Le sens de dépendance descend toujours : une page peut appeler un store et un c
 | `puzzle` | Identifiants des puzzles résolus | `localStorage` |
 | `auth` | Session anonyme Supabase, pseudo (`profiles.handle`) | Supabase + Preferences (natif) |
 | `group` | Groupes du membre, groupe courant, roster | Supabase |
+| `vote` | Approbations par POI, préférences de chaque membre, canal temps réel | Supabase + WebSocket |
 
 ## Utilitaires purs
 
@@ -136,6 +139,19 @@ Les deux bugs ont survécu à la relecture et au typage : ils ne vivent ni dans 
 5. `join_group_by_code()` insère l'adhésion avec `auth.uid()`, en `on conflict do nothing`.
 6. Dès l'adhésion, la RLS bascule : `is_group_member()` devient vrai, et le groupe, son roster et ses votes deviennent lisibles.
 7. Le roster s'affiche ; les tables sont publiées dans `supabase_realtime`, l'arrivée d'un membre peut être poussée en direct.
+
+## Flux typique — voter dans un groupe
+
+1. La page du groupe charge les POI depuis Nuxt Content et les filtre sur **la ville du groupe** — pas sur la ville active du sélecteur : on ne vote pas sur des lieux de Caen dans un groupe formé à Troyes.
+2. `voteStore.load()` reconstruit l'état depuis `poi_votes` et `preference_votes`, puis `subscribe()` ouvre un canal Realtime filtré sur `group_id`.
+3. Cocher un lieu insère une ligne dans `poi_votes` ; décocher la supprime. La contrainte `(group_id, user_id, poi_slug)` rend l'opération idempotente — deux appareils qui cochent en même temps ne créent pas de doublon.
+4. Realtime diffuse l'événement aux autres membres, **RLS comprise** : un non-membre abonné au même canal ne reçoit rien. Les compteurs se mettent à jour sans rechargement.
+5. Les curseurs de préférences écrivent en `upsert` sur `(group_id, user_id)` après un anti-rebond de 600 ms — sans quoi un simple glissement produirait une dizaine d'écritures et autant de diffusions.
+6. Si le canal ne s'ouvre pas, `isLive` passe à faux : l'interface l'affiche et propose un rafraîchissement manuel. Les votes restent enregistrés, seule la mise à jour spontanée disparaît.
+
+**Le piège de l'upsert** : `.upsert(…, { onConflict: 'group_id,user_id' })` — sans `onConflict`, PostgREST vise la clé primaire, qui ne peut jamais entrer en conflit puisqu'elle est générée. L'insertion se heurte alors à la contrainte unique et rend un `409` au lieu de mettre à jour.
+
+**Le piège du DELETE en Realtime** : un `DELETE` ne transporte que l'identité de réplique. Sans `REPLICA IDENTITY FULL`, l'événement ne porte que la clé primaire — pas le `poi_slug`. Le store recharge donc au lieu de deviner ; c'est le prix à payer pour ne pas alourdir le WAL de toutes les colonnes.
 
 ## Flux typique — une visite hors ligne
 
