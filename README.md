@@ -88,74 +88,50 @@ Experience interactive au Chateau de Caen inspiree du jeu *The Witness* :
 ## Architecture du projet
 
 ```
-caen-visite/
-├── nuxt.config.ts
-├── capacitor.config.ts
+.
+├── nuxt.config.ts                # Nuxt 4, PWA, routeRules, runtimeConfig Supabase
+├── capacitor.config.ts           # fr.arpente.app, webDir .output/public
+├── content.config.ts             # Collections Nuxt Content (pois, routes, puzzles, tips)
 ├── app.vue
 ├── assets/
-│   ├── styles/
-│   │   ├── main.scss
-│   │   └── variables.scss
-│   └── targets/                  # Images sources pour la reconnaissance AR (mind-ar)
+│   ├── styles/                   # main.scss, variables.scss
+│   └── targets/raw/              # Images sources pour la reconnaissance AR (mind-ar)
 ├── components/
-│   ├── map/
-│   │   ├── MapView.client.vue    # Carte Leaflet principale (client-only)
-│   │   └── DirectionArrow.vue    # Fleche de direction vers le prochain POI
-│   ├── poi/
-│   │   └── BottomSheet.vue       # Volet coulissant (peek/half/full)
-│   ├── route/
-│   │   ├── RouteCard.vue         # Card d'un parcours
-│   │   ├── RouteChecklist.vue    # Checklist des etapes d'un parcours actif
-│   │   └── RouteTracker.vue      # Suivi de progression dans un parcours
-│   ├── ar/
-│   │   ├── ArCamera.vue          # Flux camera + overlay Canvas
-│   │   ├── ArTracker.vue         # Reconnaissance d'image (mind-ar)
-│   │   ├── PuzzleOverlay.vue     # Overlay du puzzle (Canvas 2D)
-│   │   └── PuzzleSuccess.vue     # Animation de reussite
-│   └── ui/
-│       ├── AppNavbar.vue
-│       ├── CitySwitcher.vue      # Selecteur de ville (pastille flottante)
-│       └── SplashScreen.vue
-├── composables/
-│   ├── useGeolocation.ts         # Position GPS + watch
-│   ├── useProximity.ts           # Detection de proximite avec les POI
-│   ├── usePuzzle.ts              # Logique du puzzle (validation trace, score)
-│   ├── useCamera.ts              # Acces camera via Capacitor
-│   ├── useImageTracking.ts       # Reconnaissance d'image AR (mind-ar)
-│   └── useRouting.ts             # Itineraire vers le prochain POI (OSRM)
+│   ├── ar/                       # ArCamera · ArTracker · PuzzleOverlay · PuzzleSuccess
+│   ├── group/                    # CreateGroupModal · JoinGroupModal · GroupCard
+│   │                             # GroupMemberList · HandlePrompt
+│   ├── map/                      # MapView.client · DirectionArrow
+│   ├── poi/                      # BottomSheet (peek/half/full)
+│   ├── route/                    # RouteCard · RouteChecklist · RouteTracker
+│   └── ui/                       # AppNavbar · CitySwitcher · SplashScreen
+├── composables/                  # useGeolocation · useProximity · useRouting · useCamera
+│                                 # useImageTracking · usePuzzle · useSupabase
 ├── content/
-│   ├── pois/                     # Fichiers Markdown par POI, tagues city: caen|troyes
-│   │   ├── chateau-de-caen.md
-│   │   ├── cathedrale-saint-pierre-saint-paul.md
-│   │   └── ...
-│   ├── routes/                   # Parcours thematiques en YAML, tagues city: caen|troyes
-│   │   ├── medieval.yaml
-│   │   ├── troyes-medieval.yaml
-│   │   └── ...
-│   └── puzzles/                  # Definition des puzzles AR (Caen uniquement)
-│       └── meurtriere-01.yaml
+│   ├── pois/                     # Fiches .md, taguées city: caen|troyes
+│   ├── routes/                   # Parcours .yaml, tagués city: caen|troyes
+│   ├── tips/                     # Anecdotes .md, taguées city: caen|troyes
+│   └── puzzles/                  # Puzzles AR .yaml (Caen uniquement)
 ├── layouts/
-│   ├── default.vue               # Layout principal (carte + CitySwitcher + navbar)
-│   └── ar.vue                    # Layout mode AR (plein ecran camera)
+│   ├── default.vue               # Carte + CitySwitcher + navbar
+│   └── ar.vue                    # Mode AR plein écran
 ├── pages/
-│   ├── index.vue                 # Carte principale, filtree par ville active
-│   ├── routes/
-│   │   ├── index.vue             # Liste des parcours de la ville active
-│   │   └── [slug].vue            # Detail d'un parcours
-│   ├── poi/
-│   │   └── [slug].vue            # Fiche complete d'un POI
-│   └── ar/
-│       ├── index.vue             # Ecran d'intro AR au Chateau
-│       └── puzzle/[id].vue       # Puzzle individuel
-├── stores/
-│   ├── city.ts                   # Ville active, config des villes (centre, zoom)
-│   ├── puzzle.ts                 # Progression des puzzles (Pinia)
-│   └── route.ts                  # Parcours actif et progression
-├── public/
-│   ├── tiles/                    # Tuiles offline pre-telechargees (toutes villes confondues)
-│   └── images/
-│       └── pois/                 # Photos des POI (non renseignees actuellement)
-└── server/                       # Vide en SSG — pas de server routes
+│   ├── index.vue                 # Carte principale, filtrée par ville active
+│   ├── routes/                   # Liste et détail d'un parcours
+│   ├── poi/[slug].vue            # Fiche complète d'un POI
+│   ├── tips/                     # Liste et détail des anecdotes
+│   ├── ar/                       # Écran d'intro AR et puzzle individuel
+│   └── groups/                   # Groupes et roster (rendu client, ssr: false)
+├── plugins/
+│   ├── supabase.client.ts        # Client Supabase — non créé si la config est absente
+│   └── precache-routes.client.ts # Pré-charge les itinéraires OSRM pour l'usage hors ligne
+├── scripts/                      # download-tiles · compile-targets
+├── stores/                       # city · route · puzzle · auth · group (Pinia)
+├── supabase/schema.sql           # Tables, RLS, fonctions security definer
+├── types/index.ts                # Types du domaine partagés
+├── utils/                        # geo · slug · arTransform · voteAggregation (fonctions pures)
+├── public/tiles/                 # Tuiles offline — créé par npm run download-tiles, non versionné
+├── CLAUDE.md                     # Doctrine du projet et garde-fous
+└── docs/architecture.md          # Annexe : couches, modules, flux, anti-patterns
 ```
 
 ## Format des donnees
@@ -252,8 +228,8 @@ reward:
 
 ```bash
 # Cloner le projet
-git clone <repo-url>
-cd caen-visite
+git clone git@github.com:Lelio88/arpente.git Arpente
+cd Arpente
 
 # Installer les dependances
 npm install

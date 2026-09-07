@@ -1,12 +1,42 @@
-# Local Claude Code settings and runtime state (machine-specific)
+# Dépendances
+node_modules/
+
+# Nuxt
+.nuxt/
+.output/
+dist/
+.data/                 # cache de build de Nuxt Content
+
+# Capacitor — projets natifs régénérés par « npx cap add »
+android/
+ios/
+
+# Environnement — copie maîtresse dans .arpente-secrets/ (racine du conteneur)
+.env
+.env.*
+!.env.example
+
+# Certificats HTTPS de développement (mkcert) : clés privées, propres à
+# l'adresse IP de la machine, régénérés localement
+*.pem
+
+# Tuiles cartographiques téléchargées (npm run download-tiles)
+public/tiles/
+
+# Réglages et état local de Claude Code (propres à la machine)
 .claude/
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Playwright MCP debug artifacts
+# Artefacts de débogage Playwright MCP
 .playwright-mcp/
 
-# Scratch/debug notes (console log dump, no lasting value)
+# Notes de débogage éphémères (vidage de console, sans valeur durable)
 resume.md
+
+# Éditeurs
+.idea/
+.vscode/
+*.sw?
+
+# Système
+.DS_Store
+Thumbs.db
