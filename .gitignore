@@ -19,8 +19,10 @@ ios/
 .env.*
 !.env.example
 
-# Certificats HTTPS de développement (mkcert) : clés privées, propres à
-# l'adresse IP de la machine, régénérés localement
+# Certificats HTTPS de développement — contiennent des clés privées.
+# Plus nécessaires par défaut depuis que devServer.https génère son certificat
+# à la volée (voir nuxt.config.ts) ; la règle reste au cas où un certificat
+# personnalisé serait fourni.
 *.pem
 
 # Tuiles cartographiques téléchargées (npm run download-tiles)
