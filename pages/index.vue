@@ -5,10 +5,14 @@ import { useProximity } from '~/composables/useProximity'
 import { useRouting } from '~/composables/useRouting'
 import { useRouteStore } from '~/stores/route'
 import { useCityStore } from '~/stores/city'
+import { useGroupRouteStore } from '~/stores/groupRoute'
+import { useDecisionStore } from '~/stores/decision'
+import { useGroupStore } from '~/stores/group'
 
 const { position } = useGeolocation()
 const routeStore = useRouteStore()
 const cityStore = useCityStore()
+const groupRouteStore = useGroupRouteStore()
 
 // Charger les POI depuis Nuxt Content
 const { data: poisRaw } = await useAsyncData('pois', () =>
@@ -44,10 +48,38 @@ watch(
   () => cityStore.currentCity,
   () => {
     if (routeStore.isNavigating) routeStore.stopRoute()
+    // Le suivi de groupe s'arrete avec lui : garder le flux ouvert sur un
+    // parcours qui n'est plus affiche laisserait la checklist se synchroniser
+    // dans le vide.
+    if (groupRouteStore.suitUnGroupe) groupRouteStore.arreter()
     selectedPoi.value = null
     showChecklist.value = false
   },
 )
+
+// Reprise du parcours de groupe apres un rechargement : le store solo ne
+// persiste pas le parcours actif, or une visite se fait ecran eteint, app
+// relancee. Seul l'identifiant du groupe est memorise, la decision est
+// rechargee depuis la base pour ne jamais afficher un parcours perime.
+onMounted(async () => {
+  const groupId = groupRouteStore.groupeAReprendre()
+  if (!groupId || routeStore.isNavigating) return
+
+  try {
+    const decisionStore = useDecisionStore()
+    const groupStore = useGroupStore()
+    await decisionStore.load(groupId)
+    if (!decisionStore.current) return
+
+    const groupe = groupStore.myGroups.find(g => g.id === groupId)
+    await groupRouteStore.suivre(decisionStore.current, groupe?.name ?? 'Parcours du groupe')
+  }
+  catch {
+    // Supabase absent, hors ligne, ou groupe quitte : la carte doit rester
+    // utilisable en solo quoi qu'il arrive.
+    groupRouteStore.arreter()
+  }
+})
 
 // Afficher le POI le plus proche ou celui selectionne
 const activePoi = computed(() => selectedPoi.value || nearbyPoi.value)
@@ -92,6 +124,7 @@ function onPoiClick(poi: Poi) {
 
 function stopRoute() {
   routeStore.stopRoute()
+  if (groupRouteStore.suitUnGroupe) groupRouteStore.arreter()
   showChecklist.value = false
 }
 </script>
@@ -126,6 +159,7 @@ function stopRoute() {
     <RouteChecklist
       v-if="showChecklist && routeStore.isNavigating"
       :pois="pois"
+      :auteurs="groupRouteStore.suitUnGroupe ? groupRouteStore.auteurs : undefined"
       @close="showChecklist = false"
     />
 

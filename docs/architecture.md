@@ -78,6 +78,7 @@ Le store `vote` porte en plus l'abonnement Realtime : un seul canal ouvert à la
 | `group` | Groupes du membre, groupe courant, roster | Supabase |
 | `vote` | Approbations par POI, préférences de chaque membre, canal temps réel | Supabase + WebSocket |
 | `decision` | Dernier parcours arrêté du groupe | Supabase |
+| `groupRoute` | Pont entre la décision et le parcours solo : checklist partagée, flux temps réel | Supabase + `localStorage` (reprise) |
 
 ## Utilitaires purs
 
@@ -164,6 +165,20 @@ Deux verrous, tous deux constatés à l'usage :
 **Le piège de l'upsert** : `.upsert(…, { onConflict: 'group_id,user_id' })` — sans `onConflict`, PostgREST vise la clé primaire, qui ne peut jamais entrer en conflit puisqu'elle est générée. L'insertion se heurte alors à la contrainte unique et rend un `409` au lieu de mettre à jour.
 
 **Le piège du DELETE en Realtime** : un `DELETE` ne transporte que l'identité de réplique. Sans `REPLICA IDENTITY FULL`, l'événement ne porte que la clé primaire — pas le `poi_slug`. Le store recharge donc au lieu de deviner ; c'est le prix à payer pour ne pas alourdir le WAL de toutes les colonnes.
+
+## Flux typique — suivre le parcours du groupe
+
+Le store solo `route` **n'est pas modifié** : il sait déjà tracer, guider et cocher. Le dupliquer pour le groupe aurait créé deux moteurs à maintenir. `groupRoute` traduit donc la décision en `RouteThematic` et la passe à `startRoute()` — carte, flèche de direction et checklist fonctionnent sans une ligne de plus.
+
+1. Sur la page du groupe, « Suivre ce parcours » convertit la décision et redirige vers la carte.
+2. `visitedSlugs` du store solo est écrasé par l'état de `visited_pois` : pour un parcours de groupe, c'est la base qui fait autorité, pas le `localStorage` de l'appareil.
+3. Un `watch` compare les listes et propage les changements locaux. On observe plutôt qu'on n'intercepte : `toggleVisited` est appelé depuis plusieurs composants, et l'envelopper reviendrait à modifier le store solo.
+4. Realtime applique les changements des autres membres. **Le drapeau `applicationDistante` coupe la boucle** — sans lui, un changement reçu du réseau repartirait aussitôt vers la base.
+5. Seul l'identifiant du groupe est mémorisé en `localStorage` ; la décision est rechargée depuis la base au retour, pour ne jamais afficher un parcours périmé.
+
+**`visited_pois` a une clé primaire `(group_id, poi_slug)`**, contrairement à `poi_votes` dont la clé est un uuid généré. Un `DELETE` transporte donc le slug dans son identité de réplique : le décochage d'un autre membre s'applique directement, sans rechargement. C'est vérifié explicitement — si l'hypothèse tombait, la checklist se désynchroniserait en silence.
+
+**Le troisième piège d'upsert du projet** : cocher utilise `ignoreDuplicates` (`ON CONFLICT DO NOTHING`), et surtout **pas** `merge-duplicates`. Ce dernier produit un `ON CONFLICT DO UPDATE`, qui exige une policy `UPDATE` — or `visited_pois` n'en a pas — et le second membre à cocher recevrait un `403` silencieux. `DO NOTHING` dit d'ailleurs mieux l'intention : cocher un lieu déjà coché ne change rien, et le premier reste crédité.
 
 ## Flux typique — une visite hors ligne
 

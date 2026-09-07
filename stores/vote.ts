@@ -1,6 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { RealtimeChannel } from '@supabase/supabase-js'
+import type { RealtimeChannel, RealtimePostgresInsertPayload } from '@supabase/supabase-js'
+
+/** Ligne de `poi_votes` telle que Realtime et PostgREST la rendent. */
+interface LigneVote {
+  group_id: string
+  user_id: string
+  poi_slug: string
+}
 
 /**
  * Etat du vote d'un groupe : approbations par POI et preferences de parcours.
@@ -153,7 +160,8 @@ export const useVoteStore = defineStore('vote', () => {
       .channel(`groupe-${groupId}`)
       .on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'poi_votes', filter: `group_id=eq.${groupId}` },
-        (charge: any) => ajouterLocalement(charge.new.poi_slug, charge.new.user_id))
+        (charge: RealtimePostgresInsertPayload<LigneVote>) =>
+          ajouterLocalement(charge.new.poi_slug, charge.new.user_id))
       .on('postgres_changes',
         { event: 'DELETE', schema: 'public', table: 'poi_votes', filter: `group_id=eq.${groupId}` },
         // Un DELETE ne transporte que l'identite de replique : sans REPLICA

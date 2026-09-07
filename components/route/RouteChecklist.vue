@@ -2,8 +2,14 @@
 import { useRouteStore } from '~/stores/route'
 import type { Poi } from '~/types'
 
-defineProps<{
+const props = defineProps<{
   pois: Poi[]
+  /**
+   * poiSlug -> pseudo du membre qui a coche. Fourni uniquement quand la carte
+   * suit un parcours de groupe ; absent, la checklist reste celle d'une visite
+   * solo et rien ne change a l'affichage.
+   */
+  auteurs?: Record<string, string>
 }>()
 
 const emit = defineEmits<{
@@ -42,6 +48,9 @@ const routeStore = useRouteStore()
           <div class="item-info">
             <span class="item-name" :class="{ strikethrough: routeStore.isVisited(poiEntry.slug) }">
               {{ pois.find(p => p.slug === poiEntry.slug)?.title || poiEntry.slug }}
+            </span>
+            <span v-if="props.auteurs?.[poiEntry.slug]" class="item-auteur">
+              coche par {{ props.auteurs[poiEntry.slug] }}
             </span>
             <span v-if="poiEntry.note" class="item-note">{{ poiEntry.note }}</span>
           </div>
@@ -185,5 +194,10 @@ const routeStore = useRouteStore()
   border-radius: $radius-sm;
   font-weight: 600;
   color: white;
+}
+.item-auteur {
+  display: block;
+  font-size: 0.7rem;
+  color: $color-text-muted;
 }
 </style>

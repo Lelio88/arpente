@@ -4,6 +4,7 @@ import { useAuthStore } from '~/stores/auth'
 import { useGroupStore } from '~/stores/group'
 import { useVoteStore } from '~/stores/vote'
 import { useDecisionStore } from '~/stores/decision'
+import { useGroupRouteStore } from '~/stores/groupRoute'
 
 const route = useRoute()
 const code = (route.params.code as string).toUpperCase()
@@ -12,6 +13,7 @@ const authStore = useAuthStore()
 const groupStore = useGroupStore()
 const voteStore = useVoteStore()
 const decisionStore = useDecisionStore()
+const groupRouteStore = useGroupRouteStore()
 
 const loadError = ref<string | null>(null)
 const isLoading = ref(true)
@@ -74,6 +76,17 @@ const auteurDecision = computed(() => {
   return groupStore.members.find(m => m.userId === id)?.handle ?? 'un membre'
 })
 
+async function suivreSurLaCarte() {
+  const groupe = groupStore.currentGroup
+  const decision = decisionStore.current
+  if (!groupe || !decision) return
+
+  await groupRouteStore.suivre(decision, groupe.name)
+  // La carte lit le parcours actif depuis le store : il n'y a rien a lui
+  // transmettre, seulement a l'afficher.
+  await navigateTo('/')
+}
+
 async function deciderLeParcours() {
   const groupe = groupStore.currentGroup
   if (!groupe || !authStore.userId) return
@@ -135,6 +148,15 @@ async function rafraichir() {
           :pois="poisDuGroupe"
           :auteur="auteurDecision"
         />
+
+        <button class="bouton-suivre" type="button" @click="suivreSurLaCarte">
+          Suivre ce parcours sur la carte
+        </button>
+
+        <p class="decision-aide">
+          Les lieux coches le sont pour tout le groupe : chacun voit l'avancee
+          des autres pendant la visite.
+        </p>
       </section>
 
       <section class="group-section">
@@ -281,6 +303,19 @@ async function rafraichir() {
   font-size: $font-size-sm;
   color: $color-text-muted;
   margin-bottom: $spacing-md;
+}
+
+.bouton-suivre {
+  width: 100%;
+  margin-top: $spacing-md;
+  padding: $spacing-md;
+  background: $color-accent;
+  border: none;
+  border-radius: $radius-sm;
+  color: $color-text;
+  font-size: $font-size-md;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .bouton-decider {

@@ -4,6 +4,20 @@ import type { City, Coordinates, DecidedRoute } from '~/types'
 import { aggregateGroupVotes } from '~/utils/voteAggregation'
 import { haversineDistance } from '~/utils/geo'
 
+/** Ligne brute de `decided_routes` : colonnes SQL, avant passage au domaine. */
+interface LigneDecision {
+  id: string
+  group_id: string
+  poi_slugs: string[] | null
+  city: string
+  target_poi_count: number
+  target_duration_minutes: number | null
+  distance_meters: number | string | null
+  duration_seconds: number | string | null
+  decided_at: string
+  decided_by: string
+}
+
 /**
  * Transforme les votes d'un groupe en un parcours arrete, puis le conserve.
  *
@@ -38,7 +52,7 @@ export const useDecisionStore = defineStore('decision', () => {
 
   const hasDecision = computed(() => current.value !== null)
 
-  function mapRow(row: any): DecidedRoute {
+  function mapRow(row: LigneDecision): DecidedRoute {
     return {
       id: row.id,
       groupId: row.group_id,

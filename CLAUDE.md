@@ -17,7 +17,7 @@ Topologie rapide — le dépôt **est** l'application, sans sous-dossier interm�
 - `content/` — POI (`.md`), parcours, tips et puzzles (`.yaml`) : la donnée éditoriale, embarquée dans le build
 - `components/` — vues par domaine : `map/`, `poi/`, `route/`, `ar/`, `group/`, `ui/`
 - `composables/` — capteurs et logique réutilisable (géoloc, proximité, caméra, tracking, itinéraire)
-- `stores/` — état global Pinia : `city`, `route`, `puzzle`, `auth`, `group`, `vote`, `decision`
+- `stores/` — état global Pinia : `city`, `route`, `puzzle`, `auth`, `group`, `vote`, `decision`, `groupRoute`
 - `utils/` — fonctions pures sans dépendance Vue (géométrie, agrégation de votes, slugs) ; **importer explicitement** entre fichiers d'`utils/` plutôt que de compter sur l'auto-import de Nuxt, sinon ils ne s'exécutent plus hors du runtime
 - `supabase/schema.sql` — schéma, RLS et fonctions de la couche groupes
 - `scripts/` — outillage hors-app : téléchargement des tuiles, compilation des cibles AR
