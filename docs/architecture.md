@@ -97,7 +97,9 @@ Le sens de dépendance descend toujours : une page peut appeler un store et un c
 
 ## Modèle de données du vote de groupe
 
-`supabase/schema.sql` est exécuté **à la main** dans l'éditeur SQL de Supabase Studio — le projet n'utilise pas d'outil de migration. Le fichier décrit donc l'état cible du schéma ; toute évolution s'y ajoute et se rejoue sur le projet Supabase.
+Le backend n'est **pas** un projet Supabase cloud : le plan gratuit plafonne à deux projets actifs par utilisateur, et DewDrop et DeckHand les occupent. Arpente tourne donc sur une stack Supabase **auto-hébergée** sur le serveur Hetzner, derrière `api.arpente.heianenterprise.com`. L'API est identique — même `supabase-js`, mêmes politiques, même schéma. Détails d'exploitation : `INFRASTRUCTURE.md` du conteneur `Projets/`.
+
+`supabase/schema.sql` est appliqué **à la main** sur cette base — le projet n'utilise pas d'outil de migration. Le fichier décrit l'état cible du schéma ; toute évolution s'y ajoute et se rejoue.
 
 | Table | Rôle |
 |---|---|
@@ -112,6 +114,18 @@ Le sens de dépendance descend toujours : une page peut appeler un store et un c
 Trois fonctions `security definer` portent la logique sensible : `generate_join_code()` (alphabet sans `O`/`0` ni `I`/`1`, ambigus à l'oral), `preview_group_by_code()` et `join_group_by_code()` — elles permettent de rejoindre un groupe **sans exposer la table `groups` en lecture**. `is_group_member()` est également `security definer` : une policy sur `group_members` qui se référencerait elle-même provoquerait une récursion RLS.
 
 `utils/voteAggregation.ts` implémente l'agrégation complète ; l'écran de groupe affiche le roster et n'appelle pas cette fonction.
+
+### Deux pièges que seul un essai réel révèle
+
+**Une variable PL/pgSQL ne doit jamais porter le nom d'une colonne.** `generate_join_code()` déclarait `code text` en regard de `groups.code` : Postgres refuse l'ambiguïté avec `42702` plutôt que de choisir, et **toute création de groupe échouait**. D'où le préfixe `v_` — convention déjà suivie par `join_group_by_code`.
+
+**Le créateur doit pouvoir relire son groupe.** Le client fait `.insert(…).select().single()`, et ce `RETURNING` exige que la ligne soit lisible **immédiatement**. Or l'adhésion du créateur intervient à l'appel suivant : une policy limitée à `is_group_member(id)` rendait donc la ligne invisible à celui qui venait de l'écrire, et Postgres rejetait l'insertion entière. La clause `or created_by = auth.uid()` ferme le trou — sans elle, personne ne peut connaître le code d'invitation de son propre groupe.
+
+Les deux bugs ont survécu à la relecture et au typage : ils ne vivent ni dans le TypeScript ni dans le SQL isolément, mais dans leur rencontre à l'exécution.
+
+### Suppression d'un compte
+
+`groups.created_by` référence `profiles(id)` **sans `on delete`**. Un profil ayant créé un groupe ne peut donc pas être supprimé tant que le groupe existe. C'est protecteur — aucun groupe ne perd son créateur par accident — mais cela veut dire qu'une suppression de compte devra traiter les groupes créés avant de retirer le profil.
 
 ## Flux typique — rejoindre un groupe par son code
 

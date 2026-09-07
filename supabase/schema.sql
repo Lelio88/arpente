@@ -78,16 +78,19 @@ create or replace function generate_join_code() returns text
 language plpgsql as $$
 declare
   alphabet text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; -- pas de O/0, I/1 (ambigus a l'oral/ecrit)
-  code text;
+  -- Prefixe v_ obligatoire : une variable nommee « code » serait ambigue avec
+  -- groups.code dans le EXIT WHEN ci-dessous, et Postgres refuse l'insertion
+  -- avec 42702 au lieu de choisir. Meme convention que join_group_by_code.
+  v_code text;
 begin
   loop
-    code := '';
+    v_code := '';
     for i in 1..6 loop
-      code := code || substr(alphabet, floor(random() * length(alphabet) + 1)::int, 1);
+      v_code := v_code || substr(alphabet, floor(random() * length(alphabet) + 1)::int, 1);
     end loop;
-    exit when not exists (select 1 from groups where groups.code = code);
+    exit when not exists (select 1 from groups where groups.code = v_code);
   end loop;
-  return code;
+  return v_code;
 end; $$;
 alter table groups alter column code set default generate_join_code();
 
@@ -139,8 +142,14 @@ create policy "profiles: self insert" on profiles
 create policy "profiles: self update" on profiles
   for update using (id = auth.uid()) with check (id = auth.uid());
 
+-- « ou createur » n'est pas une commodite : sans cette clause, celui qui cree un
+-- groupe ne peut pas relire la ligne qu'il vient d'inserer, puisqu'il ne devient
+-- membre qu'a l'appel suivant (join_group_by_code). Or le client fait
+-- .insert().select().single() — le RETURNING exige la lisibilite de la ligne, et
+-- Postgres refuse l'insertion entiere avec 42501. Le createur n'aurait alors
+-- aucun moyen de connaitre le code d'invitation de son propre groupe.
 create policy "groups: members select" on groups
-  for select using (is_group_member(id));
+  for select using (is_group_member(id) or created_by = auth.uid());
 create policy "groups: self-created insert" on groups
   for insert with check (created_by = auth.uid());
 create policy "groups: members update status" on groups

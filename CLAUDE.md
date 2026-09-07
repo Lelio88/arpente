@@ -41,6 +41,8 @@ Topologie rapide — le dépôt **est** l'application, sans sous-dossier interm�
 2. **Tout POI, parcours ou tip porte un champ `city`** (`caen` | `troyes`) et un **slug unique sur tout le projet**, toutes villes confondues — préfixer par la ville en cas de risque de collision.
 3. **L'app doit rester utilisable sans Supabase.** Le plugin ne crée le client que si l'URL et la clé sont présentes ; toute page hors `/groups` doit fonctionner offline, sans session, sans réseau.
 4. **Toute nouvelle table Supabase arrive avec sa RLS.** `enable row level security`, ses policies, **et** le `grant` au rôle `authenticated` — les policies seules ne suffisent pas. Passer par `is_group_member()` (`security definer`) pour éviter la récursion RLS.
+   - Une policy `select` doit rendre la ligne lisible **au moment même de l'insertion** si le client fait `.insert().select()` : le `RETURNING` s'évalue avant toute autre écriture, et une ligne invisible fait échouer l'insertion entière.
+   - Une variable PL/pgSQL ne porte **jamais** le nom d'une colonne du même bloc — préfixer `v_`, sinon Postgres refuse avec `42702` au lieu d'arbitrer.
 5. **Aucun secret dans le dépôt.** Les clés Supabase transitent par `.env` (gitignoré) → `runtimeConfig.public`. La copie maîtresse vit dans `.arpente-secrets/` à la racine du conteneur `Projets/`.
 6. **TypeScript strict, pas de `any`.** `<script setup lang="ts">` partout, types du domaine dans `types/index.ts`, pas de logique métier dans les composants (déléguer aux composables, stores et `utils/`).
 7. **Rien de spécifique à une ville en dur dans le code.** Centre, zoom et libellés viennent de `CITIES` (`stores/city.ts`) ; la carte reçoit `center`/`zoom` en props.
