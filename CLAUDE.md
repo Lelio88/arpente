@@ -17,7 +17,7 @@ Topologie rapide — le dépôt **est** l'application, sans sous-dossier interm�
 - `content/` — POI (`.md`), parcours, tips et puzzles (`.yaml`) : la donnée éditoriale, embarquée dans le build
 - `components/` — vues par domaine : `map/`, `poi/`, `route/`, `ar/`, `group/`, `ui/`
 - `composables/` — capteurs et logique réutilisable (géoloc, proximité, caméra, tracking, itinéraire)
-- `stores/` — état global Pinia : `city`, `route`, `puzzle`, `auth`, `group`
+- `stores/` — état global Pinia : `city`, `route`, `puzzle`, `auth`, `group`, `vote`
 - `utils/` — fonctions pures sans dépendance Vue (géométrie, agrégation de votes, slugs)
 - `supabase/schema.sql` — schéma, RLS et fonctions de la couche groupes
 - `scripts/` — outillage hors-app : téléchargement des tuiles, compilation des cibles AR
@@ -62,7 +62,7 @@ Topologie rapide — le dépôt **est** l'application, sans sous-dossier interm�
 
 ```bash
 npm install
-npm run dev                      # dev en HTTPS (certs mkcert requis, cf. nuxt.config.ts > devServer)
+npm run dev                      # dev en HTTPS, certificat auto-genere (cf. nuxt.config.ts)
 npm run typecheck                # vue-tsc — la vérification de référence
 npm run generate                 # build statique offline → .output/public
 npm run download-tiles           # tuiles OSM des deux villes (-- caen | -- troyes pour une seule)
@@ -72,7 +72,7 @@ npx cap sync && npx cap open android
 
 **Sous Windows, `npm install` échoue** sur `canvas`, dépendance native de `mind-ar`, faute de chaîne d'outils MSVC. Installer avec `npm install --ignore-scripts` : Nuxt, le typecheck et le build statique fonctionnent normalement. Seule la compilation locale des cibles `.mind` reste indisponible — elle passe de toute façon par le compilateur MindAR en ligne (voir `scripts/compile-targets.ts`).
 
-La caméra et la géolocalisation exigent un contexte sécurisé : le serveur de dev tourne en HTTPS sur le LAN via des certificats **mkcert non versionnés** (`*.pem`). Sans eux, `npm run dev` refuse de démarrer — les régénérer pour l'IP de la machine.
+La caméra et la géolocalisation exigent un contexte sécurisé, y compris depuis une IP locale : le serveur de dev tourne donc en HTTPS. Le certificat est **auto-généré à chaque démarrage** par listhen, et couvre les IP du réseau local détectées — un téléphone sur le même Wi-Fi n'a qu'un avertissement d'auto-signature à accepter, sans erreur de nom. Aucun fichier `*.pem` à fournir.
 
 ## VII. Maintenance documentaire
 

@@ -202,4 +202,4 @@ Le projet n'a **ni tests ni CI**. Trois filets seulement :
 
 ## Secrets et configuration
 
-`.env` (gitignoré, modèle dans `.env.example`) porte `NUXT_PUBLIC_SUPABASE_URL` et `NUXT_PUBLIC_SUPABASE_ANON_KEY`, relayés par `runtimeConfig.public`. La copie maîtresse vit dans `.arpente-secrets/`, à la racine du conteneur `Projets/`, hors de tout dépôt. Les certificats de développement (`*.pem`, mkcert) sont propres à chaque machine et ne sont pas versionnés.
+`.env` (gitignoré, modèle dans `.env.example`) porte `NUXT_PUBLIC_SUPABASE_URL` et `NUXT_PUBLIC_SUPABASE_ANON_KEY`, relayés par `runtimeConfig.public`. La copie maîtresse vit dans `.arpente-secrets/`, à la racine du conteneur `Projets/`, hors de tout dépôt. Le serveur de développement n'exige plus aucun certificat : il en génère un à la volée, valable pour les IP locales détectées. La règle `*.pem` du `.gitignore` ne couvre plus qu'un certificat fourni à la main.
