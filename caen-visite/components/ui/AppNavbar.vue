@@ -8,6 +8,7 @@ const allTabs = [
   { path: '/', icon: '🗺️', label: 'Carte', cities: ['caen', 'troyes'] },
   { path: '/routes', icon: '🚶', label: 'Parcours', cities: ['caen', 'troyes'] },
   { path: '/ar', icon: '✨', label: 'AR', cities: ['caen'] },
+  { path: '/groups', icon: '👥', label: 'Groupes', cities: ['caen', 'troyes'] },
   { path: '/tips', icon: '💡', label: 'Tips', cities: ['caen', 'troyes'] },
 ] as const
 

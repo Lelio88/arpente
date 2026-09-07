@@ -109,3 +109,60 @@ export interface Tip {
   color: string
   description: string
 }
+
+export type GroupStatus = 'voting' | 'decided'
+
+export interface Profile {
+  id: string
+  handle: string
+}
+
+export interface Group {
+  id: string
+  code: string
+  name: string
+  city: City
+  status: GroupStatus
+  createdBy: string
+  createdAt: string
+}
+
+export interface GroupMember {
+  groupId: string
+  userId: string
+  handle: string
+  joinedAt: string
+}
+
+export interface PoiVote {
+  groupId: string
+  userId: string
+  poiSlug: string
+}
+
+export interface PreferenceVote {
+  groupId: string
+  userId: string
+  targetPoiCount: number | null
+  targetDurationMinutes: number | null
+}
+
+export interface VisitedGroupPoi {
+  groupId: string
+  poiSlug: string
+  userId: string
+  visitedAt: string
+}
+
+export interface DecidedRoute {
+  id: string
+  groupId: string
+  poiSlugs: string[]
+  city: City
+  targetPoiCount: number
+  targetDurationMinutes: number | null
+  distanceMeters: number | null
+  durationSeconds: number | null
+  decidedAt: string
+  decidedBy: string
+}

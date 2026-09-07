@@ -81,6 +81,19 @@ export default defineNuxtConfig({
     preset: 'static',
   },
 
+  // Les codes de groupe sont crees apres le build (npm run generate) et ne
+  // peuvent donc jamais etre pre-rendus : cette section reste en rendu client.
+  routeRules: {
+    '/groups/**': { ssr: false },
+  },
+
+  runtimeConfig: {
+    public: {
+      supabaseUrl: '',
+      supabaseAnonKey: '',
+    },
+  },
+
   typescript: {
     strict: true,
   },
