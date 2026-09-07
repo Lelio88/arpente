@@ -1,5 +1,6 @@
 ---
 title: "Salle de l'Echiquier"
+city: caen
 category: monument
 lat: 49.18650
 lng: -0.36390

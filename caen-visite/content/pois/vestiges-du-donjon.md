@@ -1,5 +1,6 @@
 ---
 title: "Vestiges du Donjon"
+city: caen
 category: monument
 lat: 49.18723
 lng: -0.36320

@@ -1,5 +1,6 @@
 ---
 title: "Parc Michel d'Ornano"
+city: caen
 category: romantique
 lat: 49.18771
 lng: -0.34927

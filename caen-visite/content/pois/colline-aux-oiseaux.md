@@ -1,5 +1,6 @@
 ---
 title: "Colline aux Oiseaux"
+city: caen
 category: romantique
 lat: 49.19790
 lng: -0.39155

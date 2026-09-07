@@ -1,5 +1,6 @@
 ---
 title: "Quartier Vaugueux"
+city: caen
 category: gastronomie
 lat: 49.185694
 lng: -0.359694

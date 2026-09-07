@@ -2,13 +2,20 @@
 import type { Poi, Coordinates } from '~/types'
 import type L from 'leaflet'
 
-const props = defineProps<{
-  pois: Poi[]
-  userPosition: Coordinates | null
-  activeRouteCoords?: Coordinates[]
-  activeRouteColor?: string
-  navigationRoute?: Coordinates[]
-}>()
+const props = withDefaults(
+  defineProps<{
+    pois: Poi[]
+    userPosition: Coordinates | null
+    center: Coordinates
+    zoom?: number
+    activeRouteCoords?: Coordinates[]
+    activeRouteColor?: string
+    navigationRoute?: Coordinates[]
+  }>(),
+  {
+    zoom: 15,
+  },
+)
 
 const emit = defineEmits<{
   poiClick: [poi: Poi]
@@ -77,8 +84,8 @@ async function initMap() {
   const L = leaflet
 
   map = L.map(mapContainer.value, {
-    center: [49.1829, -0.3707], // Centre de Caen
-    zoom: 15,
+    center: [props.center.lat, props.center.lng],
+    zoom: props.zoom,
     zoomControl: false,
     attributionControl: false,
   })
@@ -100,9 +107,19 @@ async function initMap() {
 
   tileLayer.addTo(map)
 
-  // Ajouter les marqueurs de POI
+  renderPoiMarkers()
+}
+
+function renderPoiMarkers() {
+  if (!map || !leaflet) return
+
+  for (const marker of markers.values()) {
+    marker.remove()
+  }
+  markers.clear()
+
   for (const poi of props.pois) {
-    const marker = L.marker([poi.lat, poi.lng], {
+    const marker = leaflet.marker([poi.lat, poi.lng], {
       icon: createPoiIcon(poi.category),
     }).addTo(map)
 
@@ -110,6 +127,21 @@ async function initMap() {
     markers.set(poi.slug, marker)
   }
 }
+
+// Recharger les marqueurs quand la liste de POI change (changement de ville)
+watch(
+  () => props.pois,
+  () => renderPoiMarkers(),
+)
+
+// Recentrer la carte quand le centre change (changement de ville)
+watch(
+  () => props.center,
+  (center) => {
+    if (!map) return
+    map.setView([center.lat, center.lng], props.zoom)
+  },
+)
 
 // Mettre a jour la position utilisateur
 watch(

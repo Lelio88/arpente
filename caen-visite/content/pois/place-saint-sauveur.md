@@ -1,5 +1,6 @@
 ---
 title: "Place Saint-Sauveur"
+city: caen
 category: architecture
 lat: 49.18280
 lng: -0.36901

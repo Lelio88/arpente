@@ -1,5 +1,6 @@
 ---
 title: "Pegasus Bridge"
+city: caen
 category: ww2
 lat: 49.242222
 lng: -0.274444

@@ -1,5 +1,5 @@
----
 title: "Architecture & Patrimoine"
+city: caen
 description: "Decouverte des batiments remarquables et de l'histoire architecturale de Caen"
 duration: "2h00"
 distance: "4 km"
@@ -46,4 +46,3 @@ pois:
     note: "Neoclassique commande par Napoleon, chainon XIXe de Caen."
   - slug: "hotel-des-postes"
     note: "Art Deco rare de 1932, survivant des bombardements de 1944."
----

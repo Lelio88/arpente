@@ -1,5 +1,6 @@
 ---
 title: "Eglise Notre-Dame de la Gloriette"
+city: caen
 category: eglise
 lat: 49.18054
 lng: -0.36669

@@ -1,5 +1,6 @@
 ---
 title: "Tour de la Reine Mathilde"
+city: caen
 category: monument
 lat: 49.18581
 lng: -0.36072

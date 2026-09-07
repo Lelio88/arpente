@@ -1,5 +1,6 @@
 ---
 title: "Musee de Normandie"
+city: caen
 category: musee
 lat: 49.18563
 lng: -0.36326

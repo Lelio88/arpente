@@ -1,5 +1,5 @@
----
 title: "Caen Gourmand"
+city: caen
 description: "Circuit gastronomique a travers les marches, rues commercantes et restaurants"
 duration: "2h30"
 distance: "3.5 km"
@@ -16,4 +16,3 @@ pois:
     note: "Le quartier historique par excellence pour trouver de bons restaurants traditionnels."
   - slug: "bassin-saint-pierre"
     note: "Profitez d'un verre en terrasse sur le port de plaisance au coeur de la ville."
----

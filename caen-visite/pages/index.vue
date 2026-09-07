@@ -4,9 +4,11 @@ import { useGeolocation } from '~/composables/useGeolocation'
 import { useProximity } from '~/composables/useProximity'
 import { useRouting } from '~/composables/useRouting'
 import { useRouteStore } from '~/stores/route'
+import { useCityStore } from '~/stores/city'
 
 const { position } = useGeolocation()
 const routeStore = useRouteStore()
+const cityStore = useCityStore()
 
 // Charger les POI depuis Nuxt Content
 const { data: poisRaw } = await useAsyncData('pois', () =>
@@ -14,25 +16,38 @@ const { data: poisRaw } = await useAsyncData('pois', () =>
 )
 
 const pois = computed<Poi[]>(() =>
-  (poisRaw.value || []).map((doc: any) => ({
-    title: doc.title,
-    slug: slugFromStem(doc.stem),
-    category: doc.meta?.category,
-    lat: doc.meta?.lat,
-    lng: doc.meta?.lng,
-    epoch: doc.meta?.epoch,
-    builder: doc.meta?.builder,
-    image: doc.meta?.image,
-    tags: doc.meta?.tags || [],
-    proximityRadius: doc.meta?.proximityRadius || 50,
-    description: doc.description,
-  })),
+  (poisRaw.value || [])
+    .filter((doc: any) => doc.meta?.city === cityStore.currentCity)
+    .map((doc: any) => ({
+      title: doc.title,
+      slug: slugFromStem(doc.stem),
+      city: doc.meta?.city,
+      category: doc.meta?.category,
+      lat: doc.meta?.lat,
+      lng: doc.meta?.lng,
+      epoch: doc.meta?.epoch,
+      builder: doc.meta?.builder,
+      image: doc.meta?.image,
+      tags: doc.meta?.tags || [],
+      proximityRadius: doc.meta?.proximityRadius || 50,
+      description: doc.description,
+    })),
 )
 
 const { nearbyPoi } = useProximity(position, pois)
 
 const selectedPoi = ref<Poi | null>(null)
 const showChecklist = ref(false)
+
+// Arreter le parcours actif en cours si on change de ville
+watch(
+  () => cityStore.currentCity,
+  () => {
+    if (routeStore.isNavigating) routeStore.stopRoute()
+    selectedPoi.value = null
+    showChecklist.value = false
+  },
+)
 
 // Afficher le POI le plus proche ou celui selectionne
 const activePoi = computed(() => selectedPoi.value || nearbyPoi.value)
@@ -86,6 +101,8 @@ function stopRoute() {
     <MapView
       :pois="pois"
       :user-position="position"
+      :center="cityStore.currentCityConfig.center"
+      :zoom="cityStore.currentCityConfig.zoom"
       :active-route-coords="activeRouteCoords"
       :active-route-color="routeStore.activeRoute?.color"
       :navigation-route="navigationRoute"

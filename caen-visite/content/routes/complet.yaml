@@ -1,5 +1,5 @@
----
 title: "Le Grand Tour"
+city: caen
 description: "Parcours exhaustif pour ne rien rater des incontournables de la cite de Guillaume le Conquerant"
 duration: "4h00"
 distance: "8 km"
@@ -46,4 +46,3 @@ pois:
     note: "Avant de penetrer dans le chateau, regardez la porte fortifiee anglaise."
   - slug: "place-de-la-republique"
     note: "Place historique aux trois noms, coeur commercial du Caen reconstruit."
----

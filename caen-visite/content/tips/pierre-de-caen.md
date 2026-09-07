@@ -1,5 +1,6 @@
 ---
 title: "La pierre de Caen"
+city: caen
 icon: "🪨"
 order: 2
 color: "#d4a373"

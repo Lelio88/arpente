@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import type { Tip } from '~/types'
+import { useCityStore } from '~/stores/city'
+
+const cityStore = useCityStore()
 
 const { data: tipsRaw } = await useAsyncData('tips', () =>
   queryCollection('tips').all(),
@@ -7,9 +10,11 @@ const { data: tipsRaw } = await useAsyncData('tips', () =>
 
 const tips = computed<Tip[]>(() =>
   (tipsRaw.value || [])
+    .filter((doc: any) => doc.meta?.city === cityStore.currentCity)
     .map((doc: any) => ({
       title: doc.title || doc.meta?.title,
       slug: slugFromStem(doc.stem),
+      city: doc.meta?.city,
       icon: doc.meta?.icon || '💡',
       order: doc.meta?.order || 99,
       color: doc.meta?.color || '#888',
@@ -23,7 +28,7 @@ const tips = computed<Tip[]>(() =>
   <div class="page-tips safe-top">
     <header class="tips-header">
       <h1>Tips</h1>
-      <p>Apprenez a regarder Caen autrement.</p>
+      <p>Apprenez a regarder {{ cityStore.currentCityConfig.name }} autrement.</p>
     </header>
 
     <div class="tips-list">

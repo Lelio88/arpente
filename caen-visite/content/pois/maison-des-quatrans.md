@@ -1,5 +1,6 @@
 ---
 title: "Maison des Quatrans"
+city: caen
 category: architecture
 lat: 49.18472
 lng: -0.36250

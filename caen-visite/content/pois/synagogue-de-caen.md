@@ -1,5 +1,6 @@
 ---
 title: "Synagogue de Caen"
+city: caen
 category: eglise
 lat: 49.18523
 lng: -0.36068

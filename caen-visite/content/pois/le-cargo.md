@@ -1,5 +1,6 @@
 ---
 title: "Le Cargo"
+city: caen
 category: architecture
 lat: 49.18107
 lng: -0.34723

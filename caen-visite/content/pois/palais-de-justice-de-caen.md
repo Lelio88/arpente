@@ -1,5 +1,6 @@
 ---
 title: "Palais de Justice"
+city: caen
 category: architecture
 lat: 49.18192
 lng: -0.37088

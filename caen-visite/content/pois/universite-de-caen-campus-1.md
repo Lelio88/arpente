@@ -1,5 +1,6 @@
 ---
 title: "Universite de Caen - Le Phenix"
+city: caen
 category: monument
 lat: 49.18876
 lng: -0.36388

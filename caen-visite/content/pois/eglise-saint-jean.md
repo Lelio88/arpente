@@ -1,5 +1,6 @@
 ---
 title: "Eglise Saint-Jean"
+city: caen
 category: eglise
 lat: 49.18056
 lng: -0.35778

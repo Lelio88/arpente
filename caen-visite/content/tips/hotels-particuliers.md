@@ -1,5 +1,6 @@
 ---
 title: "Lire une facade Renaissance"
+city: caen
 icon: "🏛️"
 order: 4
 color: "#9b59b6"

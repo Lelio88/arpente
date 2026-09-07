@@ -1,5 +1,6 @@
 ---
 title: "Musee des Beaux-Arts"
+city: caen
 category: musee
 lat: 49.1865
 lng: -0.3615

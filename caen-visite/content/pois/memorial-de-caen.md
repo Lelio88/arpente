@@ -1,5 +1,6 @@
 ---
 title: "Memorial de Caen"
+city: caen
 category: ww2
 lat: 49.1975
 lng: -0.3844

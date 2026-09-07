@@ -1,5 +1,6 @@
 ---
 title: "Eglise Saint-Julien"
+city: caen
 category: eglise
 lat: 49.18944
 lng: -0.36889

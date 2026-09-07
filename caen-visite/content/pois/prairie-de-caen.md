@@ -1,5 +1,6 @@
 ---
 title: "Prairie de Caen"
+city: caen
 category: romantique
 lat: 49.17673
 lng: -0.36397

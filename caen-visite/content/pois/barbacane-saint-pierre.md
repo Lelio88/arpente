@@ -1,5 +1,6 @@
 ---
 title: "Barbacane de la Porte Saint-Pierre"
+city: caen
 category: monument
 lat: 49.18498
 lng: -0.36158

@@ -1,5 +1,6 @@
 ---
 title: "Hotel de Prefecture"
+city: caen
 category: architecture
 lat: 49.18000
 lng: -0.36528

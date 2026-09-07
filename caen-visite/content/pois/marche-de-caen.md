@@ -1,5 +1,6 @@
 ---
 title: "Marche de Caen"
+city: caen
 category: gastronomie
 lat: 49.18386
 lng: -0.35658

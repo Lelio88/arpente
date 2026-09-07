@@ -1,5 +1,6 @@
 ---
 title: "Rue Froide"
+city: caen
 category: romantique
 lat: 49.18309
 lng: -0.36496

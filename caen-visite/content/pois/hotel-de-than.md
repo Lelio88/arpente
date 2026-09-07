@@ -1,5 +1,6 @@
 ---
 title: "Hotel de Than"
+city: caen
 category: architecture
 lat: 49.18293
 lng: -0.36127

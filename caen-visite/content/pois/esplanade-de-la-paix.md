@@ -1,5 +1,6 @@
 ---
 title: "Esplanade de la Paix"
+city: caen
 category: romantique
 lat: 49.18876
 lng: -0.36388

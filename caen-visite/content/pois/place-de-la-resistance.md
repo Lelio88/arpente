@@ -1,5 +1,6 @@
 ---
 title: "Place de la Resistance"
+city: caen
 category: ww2
 lat: 49.18113
 lng: -0.35549

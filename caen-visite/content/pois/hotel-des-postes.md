@@ -1,5 +1,6 @@
 ---
 title: "Hotel des Postes"
+city: caen
 category: architecture
 lat: 49.18020
 lng: -0.36412

@@ -1,5 +1,6 @@
 ---
 title: "Abbaye aux Dames"
+city: caen
 category: monument
 lat: 49.18682
 lng: -0.35242

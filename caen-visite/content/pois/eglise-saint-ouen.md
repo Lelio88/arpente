@@ -1,5 +1,6 @@
 ---
 title: "Eglise Saint-Ouen"
+city: caen
 category: eglise
 lat: 49.17716
 lng: -0.37674

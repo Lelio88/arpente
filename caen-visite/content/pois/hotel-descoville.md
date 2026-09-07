@@ -1,5 +1,6 @@
 ---
 title: "Hotel d'Escoville"
+city: caen
 category: architecture
 lat: 49.18361
 lng: -0.36139

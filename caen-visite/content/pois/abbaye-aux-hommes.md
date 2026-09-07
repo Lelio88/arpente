@@ -1,5 +1,6 @@
 ---
 title: "Abbaye aux Hommes"
+city: caen
 category: monument
 lat: 49.18180
 lng: -0.37310

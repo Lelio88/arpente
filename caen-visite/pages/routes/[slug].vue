@@ -19,6 +19,7 @@ const route = computed<RouteThematic | null>(() => {
   return {
     title: doc.title || doc.meta?.title,
     slug: slugFromStem(doc.stem),
+    city: doc.meta?.city,
     description: doc.description || doc.meta?.description,
     duration: doc.meta?.duration,
     distance: doc.meta?.distance,
@@ -37,6 +38,7 @@ const routePois = computed<Poi[]>(() => {
       return {
         title: doc.title,
         slug: slugFromStem(doc.stem),
+        city: doc.meta?.city,
         category: doc.meta?.category,
         lat: doc.meta?.lat,
         lng: doc.meta?.lng,

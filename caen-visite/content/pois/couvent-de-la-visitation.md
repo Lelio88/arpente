@@ -1,5 +1,6 @@
 ---
 title: "Couvent de la Visitation"
+city: caen
 category: musee
 lat: 49.18111
 lng: -0.37908

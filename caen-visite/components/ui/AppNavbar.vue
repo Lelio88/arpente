@@ -1,12 +1,19 @@
 <script setup lang="ts">
-const route = useRoute()
+import { useCityStore } from '~/stores/city'
 
-const tabs = [
-  { path: '/', icon: '🗺️', label: 'Carte' },
-  { path: '/routes', icon: '🚶', label: 'Parcours' },
-  { path: '/ar', icon: '✨', label: 'AR' },
-  { path: '/tips', icon: '💡', label: 'Tips' },
+const route = useRoute()
+const cityStore = useCityStore()
+
+const allTabs = [
+  { path: '/', icon: '🗺️', label: 'Carte', cities: ['caen', 'troyes'] },
+  { path: '/routes', icon: '🚶', label: 'Parcours', cities: ['caen', 'troyes'] },
+  { path: '/ar', icon: '✨', label: 'AR', cities: ['caen'] },
+  { path: '/tips', icon: '💡', label: 'Tips', cities: ['caen', 'troyes'] },
 ] as const
+
+const tabs = computed(() =>
+  allTabs.filter((tab) => (tab.cities as readonly string[]).includes(cityStore.currentCity)),
+)
 </script>
 
 <template>

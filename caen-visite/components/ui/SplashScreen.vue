@@ -17,7 +17,7 @@ onMounted(() => {
             <path d="M12 2L2 12h3v8h14v-8h3L12 2zm0 3.5L18 11h-1.5v7h-9v-7H6L12 5.5z"/>
           </svg>
         </div>
-        <h1 class="splash-title">Caen Visite</h1>
+        <h1 class="splash-title">Arpente</h1>
         <p class="splash-subtitle">Decouvrez la ville autrement</p>
       </div>
     </div>

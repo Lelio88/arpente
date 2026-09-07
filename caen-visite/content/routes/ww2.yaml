@@ -1,5 +1,5 @@
----
 title: "Caen 39-45"
+city: caen
 description: "Parcours historique sur la Seconde Guerre mondiale et la Bataille de Normandie"
 duration: "3h00"
 distance: "12 km"
@@ -38,4 +38,3 @@ pois:
     note: "Eglise heritiere de Saint-Gilles, batie avec ses dommages de guerre."
   - slug: "pont-de-vaucelles"
     note: "Pont detruit la nuit du 6 juin 1944, symbole muet de la Bataille de Caen."
----

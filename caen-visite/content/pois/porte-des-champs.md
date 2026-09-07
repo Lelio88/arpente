@@ -1,5 +1,6 @@
 ---
 title: "Porte des Champs"
+city: caen
 category: monument
 lat: 49.18694
 lng: -0.36174

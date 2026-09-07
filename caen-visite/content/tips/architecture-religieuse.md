@@ -1,5 +1,6 @@
 ---
 title: "Reconnaitre les styles d'eglises"
+city: caen
 icon: "⛪"
 order: 1
 color: "#f4a261"

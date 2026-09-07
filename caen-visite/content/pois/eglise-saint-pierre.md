@@ -1,5 +1,6 @@
 ---
 title: "Eglise Saint-Pierre"
+city: caen
 category: eglise
 lat: 49.18402
 lng: -0.36090

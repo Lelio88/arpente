@@ -4,18 +4,43 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-const BOUNDS = {
-  north: 49.205,
-  south: 49.165,
-  west: -0.405,
-  east: -0.330,
+interface Bounds {
+  north: number
+  south: number
+  west: number
+  east: number
+}
+
+const CITY_BOUNDS: Record<string, Bounds> = {
+  caen: {
+    north: 49.205,
+    south: 49.165,
+    west: -0.405,
+    east: -0.330,
+  },
+  troyes: {
+    north: 48.310,
+    south: 48.285,
+    west: 4.060,
+    east: 4.090,
+  },
 }
 
 const ZOOM_MIN = 13
 const ZOOM_MAX = 17
 const DELAY_MS = 500
-const USER_AGENT = 'CaenVisite/1.0 (offline-tour-app)'
+const USER_AGENT = 'Arpente/1.0 (offline-tour-app)'
 const OUTPUT_DIR = join(__dirname, '..', 'public', 'tiles')
+
+function resolveCities(): string[] {
+  const arg = process.argv[2]
+  if (!arg) return Object.keys(CITY_BOUNDS)
+  if (!CITY_BOUNDS[arg]) {
+    console.error(`Ville inconnue : "${arg}". Villes disponibles : ${Object.keys(CITY_BOUNDS).join(', ')}`)
+    process.exit(1)
+  }
+  return [arg]
+}
 
 function lngToTileX(lng: number, zoom: number): number {
   return Math.floor(((lng + 180) / 360) * Math.pow(2, zoom))
@@ -35,14 +60,14 @@ interface Tile {
   y: number
 }
 
-function generateTileList(): Tile[] {
+function generateTileList(bounds: Bounds): Tile[] {
   const tiles: Tile[] = []
 
   for (let z = ZOOM_MIN; z <= ZOOM_MAX; z++) {
-    const xMin = lngToTileX(BOUNDS.west, z)
-    const xMax = lngToTileX(BOUNDS.east, z)
-    const yMin = latToTileY(BOUNDS.north, z)
-    const yMax = latToTileY(BOUNDS.south, z)
+    const xMin = lngToTileX(bounds.west, z)
+    const xMax = lngToTileX(bounds.east, z)
+    const yMin = latToTileY(bounds.north, z)
+    const yMax = latToTileY(bounds.south, z)
 
     for (let x = xMin; x <= xMax; x++) {
       for (let y = yMin; y <= yMax; y++) {
@@ -85,24 +110,29 @@ async function downloadTile(tile: Tile): Promise<boolean> {
 }
 
 async function main() {
-  const tiles = generateTileList()
-  console.log(`Tuiles a telecharger : ${tiles.length}`)
+  const cities = resolveCities()
+  console.log(`Villes : ${cities.join(', ')}`)
   console.log(`Dossier de sortie : ${OUTPUT_DIR}`)
   console.log()
 
   let downloaded = 0
   let skipped = 0
 
-  for (let i = 0; i < tiles.length; i++) {
-    const tile = tiles[i]!
-    const wasDownloaded = await downloadTile(tile)
+  for (const city of cities) {
+    const tiles = generateTileList(CITY_BOUNDS[city]!)
+    console.log(`--- ${city} : ${tiles.length} tuiles ---`)
 
-    if (wasDownloaded) {
-      downloaded++
-      console.log(`  [${i + 1}/${tiles.length}] z${tile.z} x${tile.x} y${tile.y} - OK`)
-      await sleep(DELAY_MS)
-    } else {
-      skipped++
+    for (let i = 0; i < tiles.length; i++) {
+      const tile = tiles[i]!
+      const wasDownloaded = await downloadTile(tile)
+
+      if (wasDownloaded) {
+        downloaded++
+        console.log(`  [${i + 1}/${tiles.length}] z${tile.z} x${tile.x} y${tile.y} - OK`)
+        await sleep(DELAY_MS)
+      } else {
+        skipped++
+      }
     }
   }
 

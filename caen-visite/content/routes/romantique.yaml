@@ -1,5 +1,5 @@
----
 title: "Balade Romantique"
+city: caen
 description: "Les plus beaux endroits pour se promener a deux a travers les jardins et monuments"
 duration: "2h00"
 distance: "5 km"
@@ -26,4 +26,3 @@ pois:
     note: "Jardin public au coeur des vestiges medievaux, l'un des coins les plus paisibles de Caen."
   - slug: "parc-michel-d-ornano"
     note: "Parc oublie a la francaise derriere l'Abbaye-aux-Dames, ideal pour pique-niquer."
----

@@ -1,5 +1,6 @@
 ---
 title: "Cimetiere militaire de Ranville"
+city: caen
 category: ww2
 lat: 49.23110
 lng: -0.25877

@@ -1,5 +1,6 @@
 ---
 title: "Promenade des Remparts"
+city: caen
 category: romantique
 lat: 49.186111
 lng: -0.362222

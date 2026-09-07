@@ -1,5 +1,6 @@
 ---
 title: "Jardin des Plantes"
+city: caen
 category: romantique
 lat: 49.18910
 lng: -0.37208

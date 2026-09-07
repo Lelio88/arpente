@@ -1,5 +1,6 @@
 ---
 title: "Eglise Saint-Michel de Vaucelles"
+city: caen
 category: eglise
 lat: 49.1739
 lng: -0.3553

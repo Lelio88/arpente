@@ -1,5 +1,6 @@
 ---
 title: "Hotel de Mondrainville"
+city: caen
 category: architecture
 lat: 49.18381
 lng: -0.36498

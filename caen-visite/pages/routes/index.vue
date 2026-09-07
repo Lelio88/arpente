@@ -1,21 +1,27 @@
 <script setup lang="ts">
 import type { RouteThematic } from '~/types'
+import { useCityStore } from '~/stores/city'
+
+const cityStore = useCityStore()
 
 const { data: routesRaw } = await useAsyncData('routes', () =>
   queryCollection('routes').all(),
 )
 
 const routes = computed<RouteThematic[]>(() =>
-  (routesRaw.value || []).map((doc: any) => ({
-    title: doc.title || doc.meta?.title,
-    slug: slugFromStem(doc.stem),
-    description: doc.description || doc.meta?.description,
-    duration: doc.meta?.duration,
-    distance: doc.meta?.distance,
-    difficulty: doc.meta?.difficulty,
-    color: doc.meta?.color,
-    pois: doc.meta?.pois || [],
-  })),
+  (routesRaw.value || [])
+    .filter((doc: any) => doc.meta?.city === cityStore.currentCity)
+    .map((doc: any) => ({
+      title: doc.title || doc.meta?.title,
+      slug: slugFromStem(doc.stem),
+      city: doc.meta?.city,
+      description: doc.description || doc.meta?.description,
+      duration: doc.meta?.duration,
+      distance: doc.meta?.distance,
+      difficulty: doc.meta?.difficulty,
+      color: doc.meta?.color,
+      pois: doc.meta?.pois || [],
+    })),
 )
 </script>
 
@@ -23,7 +29,7 @@ const routes = computed<RouteThematic[]>(() =>
   <div class="page-routes safe-top">
     <header class="routes-header">
       <h1>Parcours</h1>
-      <p>Decouvrez Caen a travers des itineraires thematiques</p>
+      <p>Decouvrez {{ cityStore.currentCityConfig.name }} a travers des itineraires thematiques</p>
     </header>
 
     <div class="routes-list">

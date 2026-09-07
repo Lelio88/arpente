@@ -76,14 +76,14 @@ export const useRouteStore = defineStore('route', () => {
 
   function loadVisited(routeSlug: string): string[] {
     if (typeof localStorage === 'undefined') return []
-    const data = localStorage.getItem(`caen-route-${routeSlug}`)
+    const data = localStorage.getItem(`arpente-route-${routeSlug}`)
     return data ? JSON.parse(data) : []
   }
 
   function saveVisited() {
     if (typeof localStorage === 'undefined' || !activeRoute.value) return
     localStorage.setItem(
-      `caen-route-${activeRoute.value.slug}`,
+      `arpente-route-${activeRoute.value.slug}`,
       JSON.stringify(visitedSlugs.value),
     )
   }

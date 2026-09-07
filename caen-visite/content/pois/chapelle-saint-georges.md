@@ -1,5 +1,6 @@
 ---
 title: "Chapelle Saint-Georges"
+city: caen
 category: eglise
 lat: 49.18592
 lng: -0.36256

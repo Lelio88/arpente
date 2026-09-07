@@ -1,5 +1,6 @@
 ---
 title: "Eglise Saint-Paul"
+city: caen
 category: eglise
 lat: 49.18647
 lng: -0.38910

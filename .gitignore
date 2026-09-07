@@ -1,5 +1,5 @@
-# Local Claude Code settings (machine-specific)
-.claude/settings.local.json
+# Local Claude Code settings and runtime state (machine-specific)
+.claude/
 
 # OS
 .DS_Store

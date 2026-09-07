@@ -1,5 +1,6 @@
 ---
 title: "Chateau de Caen"
+city: caen
 category: monument
 lat: 49.18646
 lng: -0.36271

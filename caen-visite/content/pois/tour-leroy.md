@@ -1,5 +1,6 @@
 ---
 title: "Tour Leroy"
+city: caen
 category: monument
 lat: 49.18437
 lng: -0.35846

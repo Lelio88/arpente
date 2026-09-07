@@ -1,5 +1,6 @@
 ---
 title: "Eglise du Vieux Saint-Sauveur"
+city: caen
 category: eglise
 lat: 49.18333
 lng: -0.36781

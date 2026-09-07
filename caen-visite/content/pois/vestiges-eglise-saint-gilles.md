@@ -1,5 +1,6 @@
 ---
 title: "Vestiges de l'Eglise Saint-Gilles"
+city: caen
 category: ww2
 lat: 49.18659
 lng: -0.35475

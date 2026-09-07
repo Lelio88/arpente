@@ -1,5 +1,6 @@
 ---
 title: "Eglise Saint-Nicolas"
+city: caen
 category: eglise
 lat: 49.18389
 lng: -0.37500

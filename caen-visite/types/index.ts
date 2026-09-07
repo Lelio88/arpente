@@ -3,9 +3,19 @@ export interface Coordinates {
   lng: number
 }
 
+export type City = 'caen' | 'troyes'
+
+export interface CityConfig {
+  slug: City
+  name: string
+  center: Coordinates
+  zoom: number
+}
+
 export interface Poi {
   title: string
   slug: string
+  city: City
   category: PoiCategory
   lat: number
   lng: number
@@ -30,6 +40,7 @@ export type PoiCategory =
 export interface RouteThematic {
   title: string
   slug: string
+  city: City
   description: string
   duration: string
   distance: string
@@ -92,6 +103,7 @@ export type BottomSheetState = 'closed' | 'peek' | 'half' | 'full'
 export interface Tip {
   title: string
   slug: string
+  city: City
   icon: string
   order: number
   color: string

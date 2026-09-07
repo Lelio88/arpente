@@ -1,5 +1,6 @@
 ---
 title: "Pont de Vaucelles"
+city: caen
 category: ww2
 lat: 49.17704
 lng: -0.35500

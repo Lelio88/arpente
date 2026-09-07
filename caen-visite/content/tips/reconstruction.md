@@ -1,5 +1,6 @@
 ---
 title: "Lire la Reconstruction"
+city: caen
 icon: "🏗️"
 order: 3
 color: "#577590"

@@ -1,5 +1,6 @@
 ---
 title: "Hotel de Colomby"
+city: caen
 category: architecture
 lat: 49.18483
 lng: -0.36640

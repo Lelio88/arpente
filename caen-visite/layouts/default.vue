@@ -3,6 +3,7 @@
 
 <template>
   <div class="layout-default">
+    <CitySwitcher />
     <slot />
     <AppNavbar />
   </div>

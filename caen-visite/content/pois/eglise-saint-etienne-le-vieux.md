@@ -1,5 +1,6 @@
 ---
 title: "Eglise Saint-Etienne-le-Vieux"
+city: caen
 category: ww2
 lat: 49.18139
 lng: -0.36944

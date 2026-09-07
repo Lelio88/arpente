@@ -1,5 +1,6 @@
 ---
 title: "Bassin Saint-Pierre"
+city: caen
 category: romantique
 lat: 49.18380
 lng: -0.35687

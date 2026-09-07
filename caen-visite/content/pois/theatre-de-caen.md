@@ -1,5 +1,6 @@
 ---
 title: "Theatre de Caen"
+city: caen
 category: monument
 lat: 49.18017
 lng: -0.36253

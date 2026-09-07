@@ -1,5 +1,6 @@
 ---
 title: "Eglise Saint-Sauveur"
+city: caen
 category: eglise
 lat: 49.18306
 lng: -0.36472

@@ -1,5 +1,6 @@
 ---
 title: "Bibliotheque Alexis-de-Tocqueville"
+city: caen
 category: architecture
 lat: 49.18219
 lng: -0.35063

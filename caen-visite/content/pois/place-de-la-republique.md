@@ -1,5 +1,6 @@
 ---
 title: "Place de la Republique"
+city: caen
 category: monument
 lat: 49.18142
 lng: -0.36375
