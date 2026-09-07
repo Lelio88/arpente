@@ -78,6 +78,7 @@ function createPoiIcon(category: string) {
 }
 
 async function initMap() {
+  await nextTick()
   if (!mapContainer.value) return
 
   leaflet = await import('leaflet')

@@ -1,6 +1,11 @@
-# Arpente — Guide de visite interactif (actuellement : Caen)
+# Arpente — Guide de visite interactif multi-ville
 
-Application mobile de visite guidee de Caen combinant geolocalisation, parcours thematiques, fiches historiques contextuelles et un mini-jeu en realite augmentee inspire de *The Witness* au Chateau de Caen.
+Application mobile de visite guidee combinant geolocalisation, parcours thematiques et fiches historiques contextuelles. Deux villes sont actuellement disponibles, selectionnables depuis l'app :
+
+- **Caen** : POI historiques, parcours thematiques, et un mini-jeu en realite augmentee inspire de *The Witness* au Chateau de Caen
+- **Troyes** : POI du centre historique (le "Bouchon de Champagne"), parcours thematiques — pas de volet AR (specifique au Chateau de Caen)
+
+L'architecture est concue pour accueillir d'autres villes a l'avenir sans changement de code : il suffit d'ajouter le contenu (POI, parcours, tips) tague avec la bonne ville et de declarer son centre de carte.
 
 ## Stack technique
 
@@ -18,28 +23,32 @@ Application mobile de visite guidee de Caen combinant geolocalisation, parcours 
 
 ## Fonctionnalites
 
+### 0. Selecteur de ville
+
+Une pastille en haut de l'ecran (`components/ui/CitySwitcher.vue`) permet de basculer entre les villes disponibles. Le choix est persiste en `localStorage` (`arpente-city`). Changer de ville :
+
+- Recentre et re-zoome la carte sur la ville selectionnee (`stores/city.ts`)
+- Filtre les POI, parcours et tips affiches (seul le contenu tague avec la ville active est rendu)
+- Coupe tout parcours actif en cours (on ne navigue pas un parcours d'une ville depuis une autre)
+- Masque l'onglet AR quand la ville active n'est pas Caen (fonctionnalite specifique au Chateau de Caen)
+
 ### 1. Carte interactive avec POI
 
-Carte plein ecran centree sur Caen avec les points d'interet :
+Carte plein ecran centree sur la ville active avec ses points d'interet :
 
-- **Monuments** : Chateau de Caen, Abbaye aux Hommes, Abbaye aux Dames, Eglise Saint-Pierre, Eglise Saint-Jean, Tour Leroy...
-- **Lieux historiques WW2** : Memorial de Caen, vestiges des bombardements...
-- **Architecture** : Hotel de ville, Maison a pans de bois, Quartier Vaugueux...
-- **Gastronomie** : Marches, restaurants typiques, cidreries...
+- **A Caen** : Chateau de Caen, Abbaye aux Hommes, Abbaye aux Dames, Eglise Saint-Pierre, Memorial de Caen, quartier Vaugueux...
+- **A Troyes** : Cathedrale Saint-Pierre-et-Saint-Paul, ruelle des Chats, maison Rachi, Cite du Vitrail, Halles de Troyes...
 
-Chaque POI est represente par un marqueur categorise (icone + couleur par theme). La position GPS de l'utilisateur est affichee en temps reel.
+Chaque POI est represente par un marqueur categorise (icone + couleur par theme : monument, eglise, ww2, architecture, gastronomie, romantique, musee). La position GPS de l'utilisateur est affichee en temps reel.
 
 ### 2. Parcours thematiques
 
-Des itineraires guides reliant plusieurs POI :
+Des itineraires guides reliant plusieurs POI, propres a chaque ville :
 
-| Parcours | Description |
-|----------|-------------|
-| **Caen Medieval** | Chateau, abbayes, eglises, remparts |
-| **Caen 39-45** | Memorial, lieux de la Liberation, vestiges |
-| **Architecture & Patrimoine** | Batiments remarquables, hotels particuliers |
-| **Caen Gourmand** | Marches, specialites normandes, bonnes adresses |
-| **Balade romantique** | Parcours special avec les plus beaux points de vue |
+| Ville | Parcours |
+|-------|----------|
+| **Caen** | Caen Medieval · Caen 39-45 · Architecture & Patrimoine · Caen Gourmand · Balade Romantique · Le Grand Tour |
+| **Troyes** | Troyes Medievale · Le Bouchon de Champagne (colombages) · Troyes et le Vitrail · Troyes Gourmande · Balade Romantique a Troyes · Le Grand Tour de Troyes |
 
 Chaque parcours affiche un trace sur la carte (polyline), la distance totale, la duree estimee, et guide l'utilisateur de POI en POI.
 
@@ -87,60 +96,51 @@ caen-visite/
 │   ├── styles/
 │   │   ├── main.scss
 │   │   └── variables.scss
-│   ├── icons/                    # Icones des marqueurs par categorie
-│   └── tiles/                    # Tuiles Leaflet pre-telechargees (offline)
+│   └── targets/                  # Images sources pour la reconnaissance AR (mind-ar)
 ├── components/
 │   ├── map/
-│   │   ├── MapView.vue           # Carte Leaflet principale
-│   │   ├── PoiMarker.vue         # Marqueur individuel
-│   │   ├── RoutePolyline.vue     # Trace d'un parcours
-│   │   └── UserPosition.vue      # Marqueur position GPS
+│   │   ├── MapView.client.vue    # Carte Leaflet principale (client-only)
+│   │   └── DirectionArrow.vue    # Fleche de direction vers le prochain POI
 │   ├── poi/
-│   │   ├── BottomSheet.vue       # Volet coulissant (peek/half/full)
-│   │   ├── PoiCard.vue           # Resume d'un POI
-│   │   └── PoiDetail.vue         # Fiche historique complete
+│   │   └── BottomSheet.vue       # Volet coulissant (peek/half/full)
 │   ├── route/
-│   │   ├── RouteList.vue         # Liste des parcours thematiques
 │   │   ├── RouteCard.vue         # Card d'un parcours
+│   │   ├── RouteChecklist.vue    # Checklist des etapes d'un parcours actif
 │   │   └── RouteTracker.vue      # Suivi de progression dans un parcours
 │   ├── ar/
 │   │   ├── ArCamera.vue          # Flux camera + overlay Canvas
+│   │   ├── ArTracker.vue         # Reconnaissance d'image (mind-ar)
 │   │   ├── PuzzleOverlay.vue     # Overlay du puzzle (Canvas 2D)
-│   │   ├── PuzzleStartPoint.vue  # Cercle de depart animee
 │   │   └── PuzzleSuccess.vue     # Animation de reussite
 │   └── ui/
-│       ├── AppHeader.vue
 │       ├── AppNavbar.vue
-│       └── ProximityAlert.vue    # Notification d'approche d'un POI
+│       ├── CitySwitcher.vue      # Selecteur de ville (pastille flottante)
+│       └── SplashScreen.vue
 ├── composables/
 │   ├── useGeolocation.ts         # Position GPS + watch
 │   ├── useProximity.ts           # Detection de proximite avec les POI
 │   ├── usePuzzle.ts              # Logique du puzzle (validation trace, score)
 │   ├── useCamera.ts              # Acces camera via Capacitor
-│   └── useOfflineTiles.ts        # Gestion du cache de tuiles
+│   ├── useImageTracking.ts       # Reconnaissance d'image AR (mind-ar)
+│   └── useRouting.ts             # Itineraire vers le prochain POI (OSRM)
 ├── content/
-│   ├── pois/                     # Fichiers Markdown par POI
+│   ├── pois/                     # Fichiers Markdown par POI, tagues city: caen|troyes
 │   │   ├── chateau-de-caen.md
-│   │   ├── abbaye-aux-hommes.md
-│   │   ├── eglise-saint-pierre.md
+│   │   ├── cathedrale-saint-pierre-saint-paul.md
 │   │   └── ...
-│   ├── routes/                   # Parcours thematiques en YAML
+│   ├── routes/                   # Parcours thematiques en YAML, tagues city: caen|troyes
 │   │   ├── medieval.yaml
-│   │   ├── ww2.yaml
-│   │   ├── architecture.yaml
-│   │   ├── gourmand.yaml
-│   │   └── romantique.yaml
-│   └── puzzles/                  # Definition des puzzles AR
-│       ├── meurtriere-01.yaml
-│       ├── meurtriere-02.yaml
-│       └── ...
+│   │   ├── troyes-medieval.yaml
+│   │   └── ...
+│   └── puzzles/                  # Definition des puzzles AR (Caen uniquement)
+│       └── meurtriere-01.yaml
 ├── layouts/
-│   ├── default.vue               # Layout principal (carte)
+│   ├── default.vue               # Layout principal (carte + CitySwitcher + navbar)
 │   └── ar.vue                    # Layout mode AR (plein ecran camera)
 ├── pages/
-│   ├── index.vue                 # Carte principale
+│   ├── index.vue                 # Carte principale, filtree par ville active
 │   ├── routes/
-│   │   ├── index.vue             # Liste des parcours
+│   │   ├── index.vue             # Liste des parcours de la ville active
 │   │   └── [slug].vue            # Detail d'un parcours
 │   ├── poi/
 │   │   └── [slug].vue            # Fiche complete d'un POI
@@ -148,12 +148,13 @@ caen-visite/
 │       ├── index.vue             # Ecran d'intro AR au Chateau
 │       └── puzzle/[id].vue       # Puzzle individuel
 ├── stores/
+│   ├── city.ts                   # Ville active, config des villes (centre, zoom)
 │   ├── puzzle.ts                 # Progression des puzzles (Pinia)
-│   ├── route.ts                  # Parcours actif et progression
-│   └── preferences.ts            # Preferences utilisateur
+│   └── route.ts                  # Parcours actif et progression
 ├── public/
+│   ├── tiles/                    # Tuiles offline pre-telechargees (toutes villes confondues)
 │   └── images/
-│       └── pois/                 # Photos des POI
+│       └── pois/                 # Photos des POI (non renseignees actuellement)
 └── server/                       # Vide en SSG — pas de server routes
 ```
 
@@ -161,10 +162,13 @@ caen-visite/
 
 ### POI (`content/pois/*.md`)
 
+Le champ `city` est obligatoire et determine dans quelle ville le POI apparait (carte, parcours, tips). Les slugs doivent rester uniques sur l'ensemble du projet, toutes villes confondues.
+
 ```markdown
 ---
 title: Chateau de Caen
 slug: chateau-de-caen
+city: caen
 category: monument
 lat: 49.1847
 lng: -0.3714
@@ -193,9 +197,14 @@ de mille ans...
 
 ### Parcours (`content/routes/*.yaml`)
 
+**Important** : ces fichiers YAML ne doivent **pas** avoir de delimiteurs `---` (contrairement aux fichiers Markdown ci-dessus). Nuxt Content echoue silencieusement a parser le frontmatter des `.yaml` wrapes dans `---...---` : le titre retombe sur le nom de fichier et tous les champs (dont `pois`) sont vides. Les fichiers doivent commencer directement par `title:`.
+
+Le champ `city` filtre le parcours par ville, au meme titre que pour les POI. Par convention, les fichiers Troyes sont prefixes `troyes-` (`troyes-medieval.yaml`, etc.) pour eviter toute collision de slug avec les parcours Caen.
+
 ```yaml
 title: Caen Medieval
 slug: medieval
+city: caen
 description: Plongez dans le Caen du Moyen Age, des abbayes fondees par Guillaume le Conquerant aux remparts du chateau.
 duration: "2h30"
 distance: "4.2 km"
@@ -256,7 +265,7 @@ npm run dev
 npm run generate
 
 # Ajout de Capacitor (mobile)
-npx cap init "Caen Visite" com.caenvisite.app
+npx cap init "Arpente" fr.arpente.app
 npx cap add android
 npx cap add ios
 
@@ -268,14 +277,15 @@ npx cap open android   # ou ios
 
 ## Telecharger les tuiles offline
 
-Pour le mode offline, les tuiles de la carte doivent etre pre-telechargees :
+Pour le mode offline, les tuiles de la carte doivent etre pre-telechargees depuis OpenStreetMap (zoom 13 a 17). Le script accepte un argument optionnel pour ne cibler qu'une ville ; sans argument, il telecharge les deux :
 
 ```bash
-# Script a creer pour telecharger les tuiles OpenStreetMap
-# Zone : Caen centre (~49.17-49.20 lat, -0.40--0.34 lng)
-# Zoom levels : 13 a 18
-npm run download-tiles
+npm run download-tiles              # Caen + Troyes
+npm run download-tiles -- caen      # Caen uniquement
+npm run download-tiles -- troyes    # Troyes uniquement
 ```
+
+Les tuiles sont numerotees selon le systeme global `{z}/{x}/{y}` d'OpenStreetMap : comme Caen et Troyes sont geographiquement distantes, leurs tuiles ne se chevauchent jamais et cohabitent sans conflit dans `public/tiles/`. Ce dossier n'est pas versionne (voir `.gitignore`) : chaque environnement doit relancer le script.
 
 ## Dependances principales
 

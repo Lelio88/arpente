@@ -5,5 +5,8 @@
 .DS_Store
 Thumbs.db
 
+# Playwright MCP debug artifacts
+.playwright-mcp/
+
 # Scratch/debug notes (console log dump, no lasting value)
 resume.md

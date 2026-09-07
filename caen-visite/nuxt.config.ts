@@ -55,7 +55,6 @@ export default defineNuxtConfig({
   },
 
   css: [
-    'leaflet/dist/leaflet.css',
     '~/assets/styles/main.scss',
   ],
 

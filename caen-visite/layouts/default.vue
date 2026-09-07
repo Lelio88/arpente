@@ -1,4 +1,13 @@
 <script setup lang="ts">
+import { useCityStore } from '~/stores/city'
+
+const cityStore = useCityStore()
+
+// Restaure la ville choisie (localStorage) apres l'hydratation : le rendu
+// serveur ne peut pas y acceder, donc on corrige cote client une fois monte.
+onMounted(() => {
+  cityStore.hydrateFromStorage()
+})
 </script>
 
 <template>

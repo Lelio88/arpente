@@ -20,7 +20,11 @@ export const CITIES: CityConfig[] = [
 const STORAGE_KEY = 'arpente-city'
 
 export const useCityStore = defineStore('city', () => {
-  const currentCity = ref<City>(loadCity())
+  // Toujours demarrer sur 'caen' : le rendu serveur n'a pas acces au localStorage,
+  // donc l'etat initial doit etre identique cote serveur et cote client pour eviter
+  // un mismatch d'hydratation. La vraie valeur est restauree par hydrateFromStorage()
+  // depuis un hook client-only (voir layouts/default.vue).
+  const currentCity = ref<City>('caen')
 
   const currentCityConfig = computed<CityConfig>(
     () => CITIES.find((c) => c.slug === currentCity.value) || CITIES[0]!,
@@ -33,10 +37,12 @@ export const useCityStore = defineStore('city', () => {
     }
   }
 
-  function loadCity(): City {
-    if (typeof localStorage === 'undefined') return 'caen'
+  function hydrateFromStorage() {
+    if (typeof localStorage === 'undefined') return
     const stored = localStorage.getItem(STORAGE_KEY)
-    return CITIES.some((c) => c.slug === stored) ? (stored as City) : 'caen'
+    if (CITIES.some((c) => c.slug === stored)) {
+      currentCity.value = stored as City
+    }
   }
 
   return {
@@ -44,5 +50,6 @@ export const useCityStore = defineStore('city', () => {
     currentCityConfig,
     cities: CITIES,
     setCity,
+    hydrateFromStorage,
   }
 })

@@ -1,8 +1,10 @@
-# CLAUDE.md — Caen Visite
+# CLAUDE.md — Arpente
 
 ## Contexte
 
-Application mobile personnelle de visite guidee de Caen. Utilisee par 2 personnes (pas de gestion multi-utilisateurs, pas d'auth). L'objectif est de proposer une experience immersive combinant carte, contenus historiques et un mini-jeu AR au Chateau de Caen.
+Application mobile personnelle de visite guidee, multi-ville (Caen et Troyes actuellement). Utilisee par 2 personnes (pas de gestion multi-utilisateurs, pas d'auth). L'objectif est de proposer une experience immersive combinant carte, contenus historiques, parcours thematiques et — a Caen uniquement — un mini-jeu AR au Chateau de Caen.
+
+Le contenu de chaque ville est independant (POI, parcours, tips tagues `city: caen` ou `city: troyes`) et selectionnable via un switcher dans l'UI. Voir la section "Systeme multi-ville" plus bas pour le detail.
 
 ## Commandes
 
@@ -90,17 +92,34 @@ npm run download-tiles   # Telecharger les tuiles offline
 | `useCamera` | Abstraction camera (web API vs Capacitor selon la plateforme) |
 | `useOfflineTiles` | Chargement des tuiles depuis le cache local, fallback reseau |
 
+## Systeme multi-ville
+
+- Type `City = 'caen' | 'troyes'` dans `types/index.ts`, champ `city` obligatoire sur `Poi`, `RouteThematic` et `Tip`
+- `stores/city.ts` : ville active (persistee en `localStorage`), config des villes (`CITIES` : slug, nom, centre carte, zoom)
+- `components/ui/CitySwitcher.vue` : selecteur flottant, monte dans `layouts/default.vue`
+- Chaque page qui liste du contenu (`pages/index.vue`, `pages/routes/index.vue`, `pages/tips/index.vue`) filtre sur `doc.meta?.city === cityStore.currentCity`
+- `MapView.client.vue` recoit `center`/`zoom` en props (plus de coordonnees en dur) et re-render ses marqueurs + recentre la carte quand ces props changent
+- L'onglet AR (`AppNavbar.vue`) est masque quand la ville active n'est pas Caen
+- Les tuiles offline (`scripts/download-tiles.ts`) partagent le meme dossier `public/tiles/` pour toutes les villes : la numerotation `{z}/{x}/{y}` d'OpenStreetMap est globale, donc aucune collision possible entre villes geographiquement distinctes
+- **Ajouter une ville** : declarer son entree dans `CITIES` (`stores/city.ts`), ajouter du contenu tague avec le nouveau slug de ville, telecharger ses tuiles (`npm run download-tiles -- <ville>`)
+
 ## Structure du contenu
 
 ```
 content/
-├── pois/          # Un fichier .md par point d'interet
-│   └── *.md       # Frontmatter YAML (coords, categorie, epoque) + corps Markdown
-├── routes/        # Un fichier .yaml par parcours thematique
-│   └── *.yaml     # Liste ordonnee de slugs de POI + metadata du parcours
-└── puzzles/       # Un fichier .yaml par puzzle de meurtriere
+├── pois/          # Un fichier .md par point d'interet, toutes villes confondues
+│   └── *.md       # Frontmatter YAML (city, coords, categorie, epoque) + corps Markdown
+├── routes/        # Un fichier .yaml par parcours thematique, toutes villes confondues
+│   └── *.yaml     # city + liste ordonnee de slugs de POI + metadata du parcours
+├── tips/          # Un fichier .md par anecdote/tip, toutes villes confondues
+│   └── *.md       # Frontmatter YAML (city, icon, order, color)
+└── puzzles/       # Un fichier .yaml par puzzle de meurtriere (Caen uniquement)
     └── *.yaml     # Coordonnees du chemin, tolerance, messages, recompense
 ```
+
+Regle importante : les fichiers `.yaml` de `routes/` et `puzzles/` ne doivent **jamais** avoir de delimiteurs `---` en tete/queue — contrairement aux `.md`, un `.yaml` wrappe en `---...---` fait echouer silencieusement le parsing Nuxt Content (titre retombe sur le nom de fichier, `meta` vide). Toujours ecrire ces fichiers en YAML pur, `title:` sur la premiere ligne.
+
+Les slugs (noms de fichiers) doivent rester uniques sur l'ensemble du projet, toutes villes confondues — prefixer par `<ville>-` en cas de risque de collision (convention suivie pour les routes Troyes : `troyes-medieval.yaml`, etc.).
 
 ## Decisions d'architecture
 
@@ -116,6 +135,9 @@ Leaflet est gratuit, sans cle API, leger, et les tuiles OSM sont telechargables 
 ### Pourquoi Capacitor et pas une PWA pure ?
 L'acces camera pour l'AR est plus fiable en natif. La geolocalisation en arriere-plan aussi. Capacitor encapsule le build Nuxt sans changer le code — c'est un ajout, pas un remplacement.
 
+### Pourquoi un champ `city` plutot qu'un fork par ville ?
+Le code (carte, proximite, parcours, bottom sheet) est entierement generique — seul le contenu et les coordonnees changent d'une ville a l'autre. Dupliquer le projet aurait duplique aussi tous les futurs correctifs et fonctionnalites. Un champ `city` sur le contenu, un store pour la ville active et un switcher dans l'UI suffisent a faire cohabiter plusieurs villes dans la meme app, sans server ni multi-tenant complexe (toujours coherent avec l'esprit "statique, offline-first, usage personnel" du projet).
+
 ## Regles pour Claude
 
 - Toujours utiliser `<script setup lang="ts">`
@@ -130,3 +152,5 @@ L'acces camera pour l'AR est plus fiable en natif. La geolocalisation en arriere
 - Pas de logique metier dans les composants — deleguer aux composables et stores
 - Chaque composant a un seul role clair (SRP)
 - Les textes de l'UI sont en francais
+- Tout nouveau POI, parcours ou tip doit porter un champ `city` (`caen` ou `troyes`) et un slug unique sur l'ensemble du projet
+- Les fichiers `.yaml` de `content/routes/` et `content/puzzles/` ne doivent jamais etre wrappes dans des delimiteurs `---` (voir "Structure du contenu")

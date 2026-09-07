@@ -19,10 +19,10 @@ const CITY_BOUNDS: Record<string, Bounds> = {
     east: -0.330,
   },
   troyes: {
-    north: 48.310,
-    south: 48.285,
-    west: 4.060,
-    east: 4.090,
+    north: 48.320,
+    south: 48.275,
+    west: 4.045,
+    east: 4.100,
   },
 }
 
@@ -101,6 +101,14 @@ async function downloadTile(tile: Tile): Promise<boolean> {
     return false
   }
 
+  // OpenStreetMap repond HTTP 200 meme quand il bloque un client abusif :
+  // le corps contient alors une image "Access blocked" a la place de la tuile.
+  // Le header x-blocked est le seul signal fiable pour detecter ce cas.
+  const blockedReason = response.headers.get('x-blocked')
+  if (blockedReason) {
+    throw new TileBlockedError(blockedReason)
+  }
+
   const buffer = Buffer.from(await response.arrayBuffer())
 
   mkdirSync(dir, { recursive: true })
@@ -108,6 +116,8 @@ async function downloadTile(tile: Tile): Promise<boolean> {
 
   return true
 }
+
+class TileBlockedError extends Error {}
 
 async function main() {
   const cities = resolveCities()
@@ -141,6 +151,13 @@ async function main() {
 }
 
 main().catch((err) => {
+  if (err instanceof TileBlockedError) {
+    console.error()
+    console.error(`OpenStreetMap a bloque ce reseau : ${err.message}`)
+    console.error('Le telechargement s\'est arrete pour eviter de sauvegarder des tuiles corrompues.')
+    console.error('Reessayez plus tard (le blocage est generalement temporaire).')
+    process.exit(1)
+  }
   console.error('Erreur fatale :', err)
   process.exit(1)
 })
