@@ -52,6 +52,9 @@ Le sens de dépendance descend toujours : une page peut appeler un store et un c
 | `components/ui/` | Barre de navigation, sélecteur de ville, écran de démarrage |
 | `content/` | 151 POI, 12 parcours, 8 tips, 1 puzzle — la donnée éditoriale, versionnée avec le code |
 | `scripts/` | Hors-app : extraction du fond de carte Protomaps, contrôle avant build, compilation des cibles AR |
+| `public/icons/` | Icônes servies par l'app : le manifest PWA les référence, et `icon-512.png` est aussi l'icône de la fiche Play |
+| `assets/branding/` | Visuels destinés aux stores uniquement (bannière de la fiche). Jamais importés par le code, donc absents du bundle |
+| `assets/icon.png` | Source 1024×1024 de la marque, dont `@capacitor/assets` dérive les icônes natives Android |
 
 ## Composables — capteurs et logique réutilisable
 

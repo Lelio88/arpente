@@ -65,11 +65,20 @@ export default defineNuxtConfig({
     manifest: {
       name: 'Arpente',
       short_name: 'Arpente',
-      description: 'Guide de visite interactif — carte, parcours thematiques et puzzle AR',
+      lang: 'fr',
+      description: 'Guide de visite interactif — carte et parcours thematiques hors ligne',
       theme_color: '#1a1a2e',
       background_color: '#1a1a2e',
       display: 'standalone',
       orientation: 'portrait',
+      // La marque tient dans le cercle de securite des icones maskable
+      // (rayon 80% du canvas), donc le meme fichier sert en « any » et en
+      // « maskable » : aucun rognage a craindre, pas de variante a maintenir.
+      icons: [
+        { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+        { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+        { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      ],
     },
     workbox: {
       navigateFallback: '/',
@@ -103,9 +112,12 @@ export default defineNuxtConfig({
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' },
         { name: 'theme-color', content: '#1a1a2e' },
-        { name: 'description', content: 'Guide de visite interactif — carte, parcours thematiques et puzzle AR' },
+        { name: 'description', content: 'Guide de visite interactif — carte et parcours thematiques hors ligne' },
       ],
-      link: [],
+      link: [
+        { rel: 'icon', type: 'image/png', href: '/icons/icon-192.png' },
+        { rel: 'apple-touch-icon', href: '/icons/icon-192.png' },
+      ],
     },
   },
 
