@@ -90,13 +90,14 @@ Le store `vote` porte en plus l'abonnement Realtime : un seul canal ouvert à la
 | `arTransform.ts` | Projette un point de la cible (0-1) vers l'écran via les matrices MindAR |
 | `ics.ts` | Génère un fichier iCalendar (RFC 5545) pour l'ajout à l'agenda depuis le navigateur |
 | `voteAggregation.ts` | Agrège les votes d'un groupe : approbation par POI, **médiane** des préférences de nombre et de durée, puis ordonnancement au plus proche voisin |
+| `features.ts` | Drapeaux de ce que l'app expose. `AR_PUZZLE_ENABLED` conditionne l'accès au puzzle, qui reste éteint tant qu'aucune cible `.mind` n'est compilée |
 
 ## Système multi-ville
 
 - `City = 'caen' | 'troyes'` (`types/index.ts`) ; `city` est **obligatoire** sur `Poi`, `RouteThematic` et `Tip`.
 - `CITIES` (`stores/city.ts`) déclare centre et zoom ; `MapView.client.vue` les reçoit en props et recentre quand ils changent.
 - Toute page listant du contenu filtre sur `doc.meta?.city === cityStore.currentCity`.
-- L'onglet AR est masqué hors de Caen — le puzzle est propre au château.
+- L'onglet AR n'apparaît qu'à Caen — le puzzle est propre au château — et seulement si `AR_PUZZLE_ENABLED` (`utils/features.ts`) est vrai. Le drapeau est à `false` : le tracé n'a pas de cible à reconnaître tant que les `.mind` du château ne sont pas compilés.
 - Le store démarre **toujours** sur `caen` et n'est hydraté depuis `localStorage` qu'au `onMounted` du layout : le rendu statique n'a pas accès au stockage, un état initial divergent casserait l'hydratation.
 - Chaque ville a **sa propre archive** `public/basemaps/<ville>.pmtiles` ; `MapView.client.vue` reçoit la ville en prop et remonte le fond correspondant quand elle change. Il n'existe pas de fond couvrant les deux.
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useCityStore } from '~/stores/city'
+import { AR_PUZZLE_ENABLED } from '~/utils/features'
 
 const route = useRoute()
 const cityStore = useCityStore()
@@ -12,8 +13,16 @@ const allTabs = [
   { path: '/tips', icon: '💡', label: 'Tips', cities: ['caen', 'troyes'] },
 ] as const
 
+// Deux filtres, deux raisons distinctes : la ville (l'AR n'existe qu'à Caen)
+// et l'état de la fonctionnalité. Un onglet menant vers une caméra qui ne
+// reconnaît aucune cible vaut moins qu'un onglet absent — voir
+// `utils/features.ts`.
 const tabs = computed(() =>
-  allTabs.filter((tab) => (tab.cities as readonly string[]).includes(cityStore.currentCity)),
+  allTabs.filter(
+    (tab) =>
+      (tab.cities as readonly string[]).includes(cityStore.currentCity)
+      && (AR_PUZZLE_ENABLED || tab.path !== '/ar'),
+  ),
 )
 </script>
 
