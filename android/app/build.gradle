@@ -1,5 +1,19 @@
 apply plugin: 'com.android.application'
 
+// Signature de release. keystore.properties n'est pas versionne (il porte les
+// mots de passe) : sa copie maitresse vit dans .arpente-secrets/, avec le
+// keystore lui-meme. Un poste qui ne l'a pas peut toujours compiler en debug.
+def fichierSignature = rootProject.file('keystore.properties')
+def signatureDisponible = fichierSignature.exists()
+def proprietesSignature = new Properties()
+if (signatureDisponible) {
+    fichierSignature.withInputStream { proprietesSignature.load(it) }
+} else {
+    logger.warn('ATTENTION : android/keystore.properties absent. La version ' +
+                'release sortira NON SIGNEE et Play la refusera. ' +
+                'Procedure : .arpente-secrets/README.md')
+}
+
 android {
     namespace = "fr.arpente.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -19,10 +33,25 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (signatureDisponible) {
+                storeFile file(proprietesSignature['storeFile'])
+                storePassword proprietesSignature['storePassword']
+                keyAlias proprietesSignature['keyAlias']
+                keyPassword proprietesSignature['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // Sans keystore, l'AAB sort non signe plutot que signe avec la cle
+            // de debogage : l'echec est alors immediat et lisible ici, au lieu
+            // d'arriver de Play une fois l'envoi fait.
+            signingConfig signatureDisponible ? signingConfigs.release : null
         }
     }
 }
