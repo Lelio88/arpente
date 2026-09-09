@@ -45,7 +45,7 @@ Le sens de dépendance descend toujours : une page peut appeler un store et un c
 | Dossier | Rôle |
 |---|---|
 | `components/map/` | `MapView.client.vue` (Leaflet, client-only : Leaflet touche au `window` dès le montage) et la flèche de direction vers le prochain POI |
-| `components/poi/` | `BottomSheet.vue` — volet à trois positions (`peek` / `half` / `full`), déclenché par la proximité |
+| `components/poi/` | `BottomSheet.vue` — volet à trois positions (`peek` / `half` / `full`), déclenché par la proximité ; `PoiImage.vue` — illustration qui s'efface si son fichier est absent, seul point où une image de POI est rendue |
 | `components/route/` | Carte de parcours, checklist des étapes, suivi de progression |
 | `components/ar/` | Flux caméra, reconnaissance de cible MindAR, overlay Canvas du tracé, animation de réussite |
 | `components/group/` | Création et adhésion d'un groupe, demande de pseudo, liste des membres, vote sur les POI (`PoiVoteList`) et préférences de parcours (`PreferenceForm`) |

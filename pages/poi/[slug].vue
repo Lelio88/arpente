@@ -11,9 +11,8 @@ const { data: poi } = await useAsyncData(`poi-${params.slug}`, () =>
     <template v-if="poi">
       <header class="poi-header">
         <button class="back-link" @click="$router.back()">← Retour</button>
-        <img
-          v-if="poi.meta?.image"
-          :src="poi.meta.image as string"
+        <PoiImage
+          :src="poi.meta?.image as string | undefined"
           :alt="poi.title"
           class="poi-hero"
         />

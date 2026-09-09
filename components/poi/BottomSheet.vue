@@ -98,8 +98,7 @@ function collapse() {
 
         <!-- Half+ -->
         <div v-if="state === 'half' || state === 'full'" class="sheet-body">
-          <img
-            v-if="poi.image"
+          <PoiImage
             :src="poi.image"
             :alt="poi.title"
             class="sheet-image"
