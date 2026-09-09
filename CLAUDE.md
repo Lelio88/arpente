@@ -4,7 +4,7 @@ Résolvez les problèmes sans introduire de régression ni de dette technique ar
 
 ## I. Finalité
 
-**Application** : Arpente (`fr.arpente.app`) — guide de visite interactif multi-ville, embarqué en app mobile.
+**Application** : Arpente (`app.arpente`) — guide de visite interactif multi-ville, embarqué en app mobile.
 **Objectif** : une carte, des parcours thématiques et des fiches historiques qui se déclenchent à la proximité GPS, utilisables **hors ligne** ; à Caen s'ajoute un mini-jeu de tracé en réalité augmentée sur les meurtrières du château. Deux villes sont livrées (Caen, Troyes) ; en accueillir une troisième relève du contenu, pas du code. Une couche de groupes en ligne (Supabase) permet à plusieurs visiteurs de préparer un parcours ensemble.
 
 ## II. Architecture

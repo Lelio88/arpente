@@ -15,10 +15,10 @@ if (signatureDisponible) {
 }
 
 android {
-    namespace = "fr.arpente.app"
+    namespace = "app.arpente"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "fr.arpente.app"
+        applicationId "app.arpente"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // versionCode : entier que Play exige STRICTEMENT croissant d'un envoi

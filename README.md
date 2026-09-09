@@ -91,7 +91,7 @@ Experience interactive au Chateau de Caen inspiree du jeu *The Witness* :
 ```
 .
 ├── nuxt.config.ts                # Nuxt 4, PWA, routeRules, runtimeConfig Supabase
-├── capacitor.config.ts           # fr.arpente.app, webDir .output/public
+├── capacitor.config.ts           # app.arpente, webDir .output/public
 ├── content.config.ts             # Collections Nuxt Content (pois, routes, puzzles, tips)
 ├── app.vue
 ├── assets/
@@ -242,7 +242,7 @@ npm run dev
 npm run generate
 
 # Ajout de Capacitor (mobile)
-npx cap init "Arpente" fr.arpente.app
+npx cap init "Arpente" app.arpente
 npx cap add android
 npx cap add ios
 

@@ -1,4 +1,4 @@
-package fr.arpente.app;
+package app.arpente;
 
 import com.getcapacitor.BridgeActivity;
 

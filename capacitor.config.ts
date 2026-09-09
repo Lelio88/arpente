@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
-  appId: 'fr.arpente.app',
+  appId: 'app.arpente',
   appName: 'Arpente',
   webDir: '.output/public',
   server: {
