@@ -2,7 +2,7 @@
 
 ## Vue d'ensemble
 
-Arpente est une application Nuxt **générée en statique** puis encapsulée par Capacitor. Il n'existe aucun serveur applicatif : le contenu éditorial (points d'intérêt, parcours, anecdotes, puzzles) est compilé dans le bundle par Nuxt Content, les tuiles cartographiques sont pré-téléchargées sur le disque, et la progression individuelle vit en `localStorage`. Cette contrainte est délibérée — l'app doit fonctionner **au milieu d'une rue, sans réseau**.
+Arpente est une application Nuxt **générée en statique** puis encapsulée par Capacitor. Il n'existe aucun serveur applicatif : le contenu éditorial (points d'intérêt, parcours, anecdotes, puzzles) est compilé dans le bundle par Nuxt Content, le fond de carte est une archive vectorielle embarquée dans le build, et la progression individuelle vit en `localStorage`. Cette contrainte est délibérée — l'app doit fonctionner **au milieu d'une rue, sans réseau**.
 
 Une seule brique est en ligne, et elle est **facultative** : Supabase porte les groupes de visite (session anonyme, pseudo, adhésion par code, roster). Le client Supabase n'est instancié que si l'URL et la clé sont configurées ; sinon `useSupabase()` lève, seules les pages `/groups` en souffrent, et le reste de l'app est intact.
 
@@ -31,9 +31,9 @@ Le code ne connaît aucune ville en particulier : une ville est une entrée de `
    └───────┬───────────────────────┬──────────────────────┬───────┘
            │                       │                      │
    ┌───────▼────────┐   ┌──────────▼─────────┐   ┌────────▼────────┐
-   │ Nuxt Content 3 │   │ public/tiles/ +    │   │ Supabase        │
+   │ Nuxt Content 3 │   │ public/basemaps/ + │   │ Supabase        │
    │ content/*.md   │   │ Service Worker PWA │   │ (facultatif)    │
-   │ content/*.yaml │   │ tuiles · OSRM      │   │ auth · RLS · RT │
+   │ content/*.yaml │   │ PMTiles · OSRM     │   │ auth · RLS · RT │
    │ → dans le build│   │ → hors ligne       │   │ → groupes       │
    └────────────────┘   └────────────────────┘   └─────────────────┘
 ```
@@ -51,7 +51,7 @@ Le sens de dépendance descend toujours : une page peut appeler un store et un c
 | `components/group/` | Création et adhésion d'un groupe, demande de pseudo, liste des membres, vote sur les POI (`PoiVoteList`) et préférences de parcours (`PreferenceForm`) |
 | `components/ui/` | Barre de navigation, sélecteur de ville, écran de démarrage |
 | `content/` | 151 POI, 12 parcours, 8 tips, 1 puzzle — la donnée éditoriale, versionnée avec le code |
-| `scripts/` | Hors-app : téléchargement des tuiles OSM, compilation des cibles AR |
+| `scripts/` | Hors-app : extraction du fond de carte Protomaps, contrôle avant build, compilation des cibles AR |
 
 ## Composables — capteurs et logique réutilisable
 
@@ -64,6 +64,7 @@ Le sens de dépendance descend toujours : une page peut appeler un store et un c
 | `useImageTracking` | Enveloppe MindAR : détection de la cible, matrices `modelView` et `projection` |
 | `usePuzzle` | Machine à états du tracé : `idle → scanning → tracking → success/fail`, tolérance et validation |
 | `useSupabase` | Renvoie le client injecté par le plugin, ou lève si Supabase n'est pas configuré |
+| `useBasemap` | Charge l'archive PMTiles d'une ville, en entier et une seule fois, et la garde en cache mémoire |
 
 Le store `vote` porte en plus l'abonnement Realtime : un seul canal ouvert à la fois, fermé au démontage de la page. Sans cette discipline, changer de groupe accumule les abonnements et les événements arrivent en double.
 
@@ -97,9 +98,9 @@ Le store `vote` porte en plus l'abonnement Realtime : un seul canal ouvert à la
 - Toute page listant du contenu filtre sur `doc.meta?.city === cityStore.currentCity`.
 - L'onglet AR est masqué hors de Caen — le puzzle est propre au château.
 - Le store démarre **toujours** sur `caen` et n'est hydraté depuis `localStorage` qu'au `onMounted` du layout : le rendu statique n'a pas accès au stockage, un état initial divergent casserait l'hydratation.
-- Les tuiles des deux villes cohabitent dans `public/tiles/` : la numérotation `{z}/{x}/{y}` d'OpenStreetMap est globale, deux villes distantes ne se chevauchent jamais.
+- Chaque ville a **sa propre archive** `public/basemaps/<ville>.pmtiles` ; `MapView.client.vue` reçoit la ville en prop et remonte le fond correspondant quand elle change. Il n'existe pas de fond couvrant les deux.
 
-**Ajouter une ville** : une entrée dans `CITIES`, du contenu tagué avec le nouveau slug, ses bornes dans `CITY_BOUNDS` (`scripts/download-tiles.ts`), puis `npm run download-tiles -- <ville>`.
+**Ajouter une ville** : une entrée dans `CITIES`, du contenu tagué avec le nouveau slug, ses bornes dans `CITY_BOUNDS` (`scripts/cities.ts`), puis `npm run download-basemap -- <ville>`.
 
 ## Modèle de données du vote de groupe
 
@@ -205,7 +206,7 @@ Le store solo `route` **n'est pas modifié** : il sait déjà tracer, guider et 
 
 1. `layouts/default.vue` monte le sélecteur de ville et hydrate la ville mémorisée.
 2. `pages/index.vue` interroge la collection `pois`, filtre sur la ville active, et passe centre et zoom à la carte.
-3. Leaflet sert les tuiles depuis `public/tiles/` ; sur une zone non téléchargée, le service worker relaie vers OSM et met en cache 30 jours.
+3. `loadCityBasemap` récupère l'archive PMTiles de la ville — servie par le service worker qui l'a pré-cachée — et Leaflet en dessine le fond vectoriel, sans aucune requête réseau.
 4. `useGeolocation` suit la position, `useProximity` détecte l'entrée dans le rayon d'un POI, vibre, et ouvre le bottom sheet.
 5. Avec un parcours actif, `useRouting` trace l'itinéraire vers l'étape suivante — pré-chargé au démarrage par `plugins/precache-routes.client.ts`, ce qui rend les parcours navigables sans réseau.
 
@@ -228,6 +229,8 @@ Le store solo `route` **n'est pas modifié** : il sait déjà tracer, guider et 
 - ❌ Committer un `.env` ou un certificat `*.pem`.
 - ❌ Mettre de la logique métier dans un composant plutôt que dans un composable, un store ou `utils/`.
 - ❌ Ajouter une bibliothèque de réalité augmentée pour le tracé : le puzzle est un overlay Canvas 2D, MindAR ne sert qu'à reconnaître l'image.
+- ❌ Télécharger des tuiles en masse depuis `tile.openstreetmap.org` : la politique de la fondation OSM l'interdit et le service refuse. Le fond de carte passe par l'extraction Protomaps, et rien d'autre.
+- ❌ Compter sur `runtimeCaching` pour rendre le fond de carte disponible hors ligne : la règle est bien traversée par le service worker mais n'écrit jamais dans le Cache Storage. Les archives passent par `additionalManifestEntries`, dans le pré-cache.
 
 ## Stratégie de vérification
 
@@ -243,7 +246,7 @@ Le projet n'a **ni tests ni CI**. Trois filets seulement :
 
 | Service | Usage | Comportement en cas de défaillance |
 |---|---|---|
-| OpenStreetMap (tuiles) | Fond de carte | Tuiles pré-téléchargées ; en ligne, cache PWA de 30 jours |
+| Protomaps (basemap OSM, ODbL) | Fond de carte | Aucun appel au runtime : l'archive PMTiles est extraite au moment du build et pré-cachée. Le service n'est sollicité que par `npm run download-basemap`. |
 | OSRM public (`router.project-osrm.org`) | Itinéraire piéton | Pré-chargé au démarrage, cache de 7 jours ; l'app reste utilisable sans tracé |
 | Supabase | Groupes, pseudo, temps réel | Facultatif : sans configuration, seules les pages `/groups` sont hors service |
 | Compilateur MindAR en ligne | Génération des fichiers `.mind` | Étape manuelle assumée : le paquet `canvas` dont dépend mind-ar ne compile pas sous Windows. `scripts/compile-targets.ts` documente la marche à suivre et vérifie la présence des fichiers. |

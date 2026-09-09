@@ -15,11 +15,12 @@ L'architecture est concue pour accueillir d'autres villes a l'avenir sans change
 | **TypeScript** | Typage statique |
 | **Nuxt Content v2** | Gestion du contenu (POI, parcours, puzzles) en Markdown/YAML |
 | **Capacitor** | Encapsulation native (iOS/Android) — acces camera, GPS |
-| **Leaflet** | Carte interactive avec tuiles offline |
+| **Leaflet** | Carte interactive |
+| **Protomaps / PMTiles** | Fond de carte vectoriel hors ligne, extrait d'OpenStreetMap |
 | **Canvas API** | Rendu du puzzle AR (overlay camera + tracking tactile) |
 | **Pinia** | Store global (progression puzzles, parcours actif, preferences) |
 | **VueUse** | Composables utilitaires (geolocation, device orientation, etc.) |
-| **Service Worker** | Cache offline des assets et tuiles cartographiques |
+| **Service Worker** | Cache offline des assets et du fond de carte |
 
 ## Fonctionnalites
 
@@ -124,12 +125,12 @@ Experience interactive au Chateau de Caen inspiree du jeu *The Witness* :
 ├── plugins/
 │   ├── supabase.client.ts        # Client Supabase — non créé si la config est absente
 │   └── precache-routes.client.ts # Pré-charge les itinéraires OSRM pour l'usage hors ligne
-├── scripts/                      # download-tiles · compile-targets
+├── scripts/                      # download-basemap · check-basemap · compile-targets
 ├── stores/                       # city · route · puzzle · auth · group (Pinia)
 ├── supabase/schema.sql           # Tables, RLS, fonctions security definer
 ├── types/index.ts                # Types du domaine partagés
 ├── utils/                        # geo · slug · arTransform · voteAggregation (fonctions pures)
-├── public/tiles/                 # Tuiles offline — créé par npm run download-tiles, non versionné
+├── public/basemaps/              # Fond de carte offline — créé par npm run download-basemap, non versionné
 ├── CLAUDE.md                     # Doctrine du projet et garde-fous
 └── docs/architecture.md          # Annexe : couches, modules, flux, anti-patterns
 ```
@@ -251,17 +252,37 @@ npx cap sync
 npx cap open android   # ou ios
 ```
 
-## Telecharger les tuiles offline
+## Telecharger le fond de carte offline
 
-Pour le mode offline, les tuiles de la carte doivent etre pre-telechargees depuis OpenStreetMap (zoom 13 a 17). Le script accepte un argument optionnel pour ne cibler qu'une ville ; sans argument, il telecharge les deux :
+Le fond de carte hors ligne est une archive **PMTiles** par ville, extraite du basemap
+**Protomaps** — un produit derive d'OpenStreetMap publie sous ODbL. Le script accepte un
+argument optionnel pour ne cibler qu'une ville ; sans argument, il extrait les deux :
 
 ```bash
-npm run download-tiles              # Caen + Troyes
-npm run download-tiles -- caen      # Caen uniquement
-npm run download-tiles -- troyes    # Troyes uniquement
+npm run download-basemap              # Caen + Troyes
+npm run download-basemap -- caen      # Caen uniquement
+npm run download-basemap -- troyes    # Troyes uniquement
 ```
 
-Les tuiles sont numerotees selon le systeme global `{z}/{x}/{y}` d'OpenStreetMap : comme Caen et Troyes sont geographiquement distantes, leurs tuiles ne se chevauchent jamais et cohabitent sans conflit dans `public/tiles/`. Ce dossier n'est pas versionne (voir `.gitignore`) : chaque environnement doit relancer le script.
+**Prerequis** : le binaire d'extraction `pmtiles` doit etre sur le `PATH`. Trois voies au
+choix, la premiere etant la plus simple si Go est installe :
+
+```bash
+go install github.com/protomaps/go-pmtiles@latest
+# ou un binaire depuis https://github.com/protomaps/go-pmtiles/releases
+# ou docker run protomaps/go-pmtiles
+```
+
+Chaque ville produit un fichier d'environ 4 Mo dans `public/basemaps/`, obtenu en une
+trentaine de requetes et quelques secondes. Le dossier n'est pas versionne (voir
+`.gitignore`) : chaque environnement doit relancer le script. `npm run build` et
+`npm run generate` s'arretent d'eux-memes si une archive manque.
+
+**Pourquoi pas des tuiles raster OpenStreetMap** : la politique de la fondation OSM
+interdit le telechargement en masse depuis `tile.openstreetmap.org`, et le service refuse
+desormais les 1 649 requetes que demandait l'ancienne approche. Le rendu vectoriel a
+d'ailleurs un avantage : les donnees s'arretent au zoom 15, mais la carte reste nette
+jusqu'au zoom 19 par sur-zoom.
 
 ## Dependances principales
 

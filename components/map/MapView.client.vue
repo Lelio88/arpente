@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import type { Poi, Coordinates } from '~/types'
+import { leafletLayer } from 'protomaps-leaflet'
+import type { Poi, Coordinates, City } from '~/types'
 import type L from 'leaflet'
+import { loadCityBasemap } from '~/composables/useBasemap'
 
 const props = withDefaults(
   defineProps<{
     pois: Poi[]
     userPosition: Coordinates | null
     center: Coordinates
+    city: City
     zoom?: number
     activeRouteCoords?: Coordinates[]
     activeRouteColor?: string
@@ -29,8 +32,14 @@ function recenter() {
 defineExpose({ recenter })
 
 const mapContainer = ref<HTMLDivElement>()
+const basemapError = ref(false)
 let leaflet: typeof L
 let map: L.Map | null = null
+let basemapLayer: ReturnType<typeof leafletLayer> | null = null
+// Ville dont le fond est en cours de montage : une bascule de ville pendant le
+// telechargement doit annuler le montage precedent, sinon la carte finirait sur
+// le fond de la ville qu'on vient de quitter.
+let mountingCity: City | null = null
 let userMarker: L.CircleMarker | null = null
 let routePolyline: L.Polyline | null = null
 let navigationPolyline: L.Polyline | null = null
@@ -77,6 +86,44 @@ function createPoiIcon(category: string) {
   })
 }
 
+/**
+ * Monte le fond de carte vectoriel de la ville et retire le precedent.
+ *
+ * `protomaps-leaflet` etend `L.GridLayer` en lisant la variable globale `L` sans
+ * jamais importer Leaflet. C'est l'import UMD de Leaflet fait plus haut qui la pose
+ * sur `window` : il doit donc rester avant tout appel a `leafletLayer`.
+ */
+async function mountBasemap(city: City) {
+  if (!map) return
+
+  mountingCity = city
+  basemapError.value = false
+
+  try {
+    const archive = await loadCityBasemap(city)
+    if (!map || mountingCity !== city) return
+
+    basemapLayer?.remove()
+    basemapLayer = leafletLayer({
+      url: archive,
+      flavor: 'light',
+      lang: 'fr',
+      // Les donnees s'arretent au zoom 15 : au-dela, le rendu vectoriel sur-zoome
+      // sans perte de nettete, ce qui couvre le zoom 19 autorise par la carte.
+      maxDataZoom: 15,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &middot; '
+        + '<a href="https://protomaps.com">Protomaps</a>',
+    })
+    basemapLayer.addTo(map)
+  } catch (error: unknown) {
+    // Le fond manque (archive non generee, ou premiere visite hors ligne). Les
+    // marqueurs et le trace restent utilisables : on le signale sans casser la vue.
+    basemapError.value = true
+    console.error('Fond de carte indisponible :', error)
+  }
+}
+
 async function initMap() {
   await nextTick()
   if (!mapContainer.value) return
@@ -87,26 +134,13 @@ async function initMap() {
   map = L.map(mapContainer.value, {
     center: [props.center.lat, props.center.lng],
     zoom: props.zoom,
-    zoomControl: false,
-    attributionControl: false,
-  })
-
-  // Tuiles locales (zoom 13-17) avec fallback en ligne
-  const tileLayer = L.tileLayer('/tiles/{z}/{x}/{y}.png', {
-    maxZoom: 19,
     minZoom: 13,
+    maxZoom: 19,
+    zoomControl: false,
+    attributionControl: true,
   })
 
-  tileLayer.on('tileerror', (event: L.TileErrorEvent) => {
-    const tile = event.tile as HTMLImageElement
-    const match = tile.src.match(/(\d+)\/(\d+)\/(\d+)\.png/)
-    if (match) {
-      const [, z, x, y] = match
-      tile.src = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
-    }
-  })
-
-  tileLayer.addTo(map)
+  await mountBasemap(props.city)
 
   renderPoiMarkers()
 }
@@ -142,6 +176,13 @@ watch(
     if (!map) return
     map.setView([center.lat, center.lng], props.zoom)
   },
+)
+
+// Basculer sur le fond de l'autre ville : chaque ville a sa propre archive PMTiles,
+// il n'existe pas de fond couvrant les deux.
+watch(
+  () => props.city,
+  (city) => mountBasemap(city),
 )
 
 // Mettre a jour la position utilisateur
@@ -219,6 +260,8 @@ watch(
 onMounted(() => initMap())
 
 onUnmounted(() => {
+  mountingCity = null
+  basemapLayer = null
   if (map) {
     map.remove()
     map = null
@@ -229,6 +272,9 @@ onUnmounted(() => {
 <template>
   <div class="map-wrapper">
     <div ref="mapContainer" class="map-container" />
+    <p v-if="basemapError" class="basemap-error" role="status">
+      Fond de carte indisponible — les points et parcours restent affiches.
+    </p>
     <button
       v-if="userPosition"
       class="recenter-btn"
@@ -253,6 +299,21 @@ onUnmounted(() => {
   width: 100%;
   flex: 1;
   z-index: 1;
+}
+
+.basemap-error {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 10;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(26, 26, 46, 0.92);
+  color: white;
+  font-size: 0.8rem;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .recenter-btn {

@@ -135,6 +135,7 @@ function stopRoute() {
       :pois="pois"
       :user-position="position"
       :center="cityStore.currentCityConfig.center"
+      :city="cityStore.currentCity"
       :zoom="cityStore.currentCityConfig.zoom"
       :active-route-coords="activeRouteCoords"
       :active-route-color="routeStore.activeRoute?.color"

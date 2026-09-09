@@ -25,8 +25,8 @@ ios/
 # personnalisé serait fourni.
 *.pem
 
-# Tuiles cartographiques téléchargées (npm run download-tiles)
-public/tiles/
+# Fonds de carte PMTiles extraits (npm run download-basemap)
+public/basemaps/
 
 # Réglages et état local de Claude Code (propres à la machine)
 .claude/

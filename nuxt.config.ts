@@ -1,4 +1,8 @@
 import { networkInterfaces } from 'node:os'
+import { createHash } from 'node:crypto'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 // IP(s) locales de la machine (hors loopback) : necessaires pour que le
 // certificat auto-signe soit accepte quand on ouvre le serveur de dev depuis
@@ -14,6 +18,36 @@ function getLocalNetworkIps(): string[] {
     }
   }
   return ips
+}
+
+// Archives PMTiles du fond de carte (public/basemaps/*.pmtiles), declarees une a une
+// au pre-cache du service worker.
+//
+// Pourquoi le pre-cache et non `runtimeCaching` : une regle CacheFirst sur ces URL est
+// bien enregistree et bien traversee par le service worker, mais n'ecrit jamais dans le
+// Cache Storage — verifie en conditions reelles, l'ecriture manuelle dans le meme cache
+// fonctionnant par ailleurs. Or « fonctionner au milieu d'une rue, sans reseau » est un
+// objectif central du projet : le fond de carte ne peut pas dependre d'un cache qui ne
+// se remplit pas. Le pre-cache, lui, est verifie.
+//
+// Consequence assumee : l'installation de la PWA telecharge les ~8 Mo d'emblee. En
+// application Capacitor, ou les archives sont deja sur le disque, ce cout est nul.
+//
+// Pourquoi `additionalManifestEntries` plutot que `globPatterns` : ces entrees s'ajoutent
+// au manifeste, la ou un `globPatterns` explicite remplacerait celui par defaut et ferait
+// silencieusement sortir du pre-cache tout ce qu'il couvre aujourd'hui.
+function basemapPrecacheEntries(): { url: string, revision: string }[] {
+  const dir = fileURLToPath(new URL('./public/basemaps', import.meta.url))
+  if (!existsSync(dir)) return []
+
+  return readdirSync(dir)
+    .filter((file) => file.endsWith('.pmtiles'))
+    .map((file) => ({
+      url: `/basemaps/${file}`,
+      // La revision est le contenu lui-meme : une nouvelle extraction invalide l'entree,
+      // une extraction identique ne fait pas retelecharger 4 Mo aux visiteurs.
+      revision: createHash('sha256').update(readFileSync(join(dir, file))).digest('hex').slice(0, 16),
+    }))
 }
 
 export default defineNuxtConfig({
@@ -39,6 +73,7 @@ export default defineNuxtConfig({
     },
     workbox: {
       navigateFallback: '/',
+      additionalManifestEntries: basemapPrecacheEntries(),
       runtimeCaching: [
         {
           urlPattern: /^https:\/\/router\.project-osrm\.org\/route\/.*/i,
@@ -48,20 +83,6 @@ export default defineNuxtConfig({
             expiration: {
               maxEntries: 50,
               maxAgeSeconds: 60 * 60 * 24 * 7, // 7 jours
-            },
-            cacheableResponse: {
-              statuses: [0, 200],
-            },
-          },
-        },
-        {
-          urlPattern: /^https:\/\/tile\.openstreetmap\.org\/.*/i,
-          handler: 'CacheFirst',
-          options: {
-            cacheName: 'osm-tiles-online',
-            expiration: {
-              maxEntries: 200,
-              maxAgeSeconds: 60 * 60 * 24 * 30, // 30 jours
             },
             cacheableResponse: {
               statuses: [0, 200],

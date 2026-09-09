@@ -20,7 +20,7 @@ Topologie rapide — le dépôt **est** l'application, sans sous-dossier interm�
 - `stores/` — état global Pinia : `city`, `route`, `puzzle`, `auth`, `group`, `vote`, `decision`, `groupRoute`
 - `utils/` — fonctions pures sans dépendance Vue (géométrie, agrégation de votes, iCalendar, slugs), vérifiées par `verif/` ; **importer explicitement** entre fichiers d'`utils/` plutôt que de compter sur l'auto-import de Nuxt, sinon ils ne s'exécutent plus hors du runtime
 - `supabase/schema.sql` — schéma, RLS et fonctions de la couche groupes
-- `scripts/` — outillage hors-app : téléchargement des tuiles, compilation des cibles AR
+- `scripts/` — outillage hors-app : extraction du fond de carte, contrôle avant build, compilation des cibles AR
 
 ## III. Pile Technologique
 
@@ -29,11 +29,11 @@ Topologie rapide — le dépôt **est** l'application, sans sous-dossier interm�
 - **Nuxt 4** + **Vue 3** (Composition API), **TypeScript strict**, SSG (`nitro.preset: 'static'`)
 - **Nuxt Content v3** — collections déclarées dans `content.config.ts`
 - **Pinia 3** (état), **VueUse 14** (capteurs)
-- **Leaflet 1.9** (carte) + tuiles OSM pré-téléchargées ; **OSRM** public pour l'itinéraire piéton
+- **Leaflet 1.9** (carte) + **protomaps-leaflet 5** / **pmtiles 3** : fond vectoriel hors ligne extrait du basemap Protomaps (OSM, ODbL) ; **OSRM** public pour l'itinéraire piéton
 - **mind-ar 1.2** (reconnaissance d'image) + Canvas 2D (tracé du puzzle)
 - **Capacitor 8** (Android/iOS : caméra, géoloc, haptique, préférences, calendrier)
 - **@supabase/supabase-js 2** (auth anonyme, Postgres, Realtime) — **optionnel au runtime**
-- **@vite-pwa/nuxt** (service worker, cache OSRM et tuiles en ligne), **SCSS** sans framework CSS
+- **@vite-pwa/nuxt** (service worker : pré-cache du fond de carte, cache OSRM), **SCSS** sans framework CSS
 
 ## IV. Garde-Fous non négociables
 
@@ -45,7 +45,8 @@ Topologie rapide — le dépôt **est** l'application, sans sous-dossier interm�
    - Une variable PL/pgSQL ne porte **jamais** le nom d'une colonne du même bloc — préfixer `v_`, sinon Postgres refuse avec `42702` au lieu d'arbitrer.
 5. **Aucun secret dans le dépôt.** Les clés Supabase transitent par `.env` (gitignoré) → `runtimeConfig.public`. La copie maîtresse vit dans `.arpente-secrets/` à la racine du conteneur `Projets/`.
 6. **TypeScript strict, pas de `any`.** `<script setup lang="ts">` partout, types du domaine dans `types/index.ts`, pas de logique métier dans les composants (déléguer aux composables, stores et `utils/`).
-7. **Rien de spécifique à une ville en dur dans le code.** Centre, zoom et libellés viennent de `CITIES` (`stores/city.ts`) ; la carte reçoit `center`/`zoom` en props.
+7. **Rien de spécifique à une ville en dur dans le code.** Centre, zoom et libellés viennent de `CITIES` (`stores/city.ts`) ; la carte reçoit `center`, `zoom` et `city` en props.
+8. **Le fond de carte ne se télécharge jamais depuis `tile.openstreetmap.org`.** La politique de la fondation OSM interdit le téléchargement en masse et le service le refuse. Chaque ville a son archive `public/basemaps/<ville>.pmtiles`, extraite du basemap Protomaps par `npm run download-basemap` — dossier non versionné, dont l'absence arrête le build. L'attribution OpenStreetMap est obligatoire : elle est portée par la couche Leaflet.
 
 ## V. Flux de Travail (Explore → Plan → Code → Verify)
 
@@ -66,7 +67,8 @@ npm run dev                      # dev en HTTPS, certificat auto-genere (cf. nux
 npm run typecheck                # vue-tsc — la vérification de référence
 npm run verif                    # exécute les fonctions pures de utils/ (tsx, sans harnais)
 npm run generate                 # build statique offline → .output/public
-npm run download-tiles           # tuiles OSM des deux villes (-- caen | -- troyes pour une seule)
+npm run download-basemap         # fond de carte des deux villes (-- caen | -- troyes pour une seule)
+                                 # prerequis : binaire pmtiles sur le PATH — voir README
 npm run compile-targets          # compile les cibles AR (.mind) depuis assets/targets/raw/
 npx cap sync && npx cap open android
 ```
@@ -81,7 +83,7 @@ La caméra et la géolocalisation exigent un contexte sécurisé, y compris depu
 
 | Modification | Fichier à mettre à jour |
 |---|---|
-| Ville ajoutée (`CITIES`, contenu, tuiles) | `README.md` + section « Système multi-ville » de [`docs/architecture.md`](./docs/architecture.md) |
+| Ville ajoutée (`CITIES`, contenu, bornes) | `README.md` + `scripts/cities.ts` + section « Système multi-ville » de [`docs/architecture.md`](./docs/architecture.md) |
 | Table, policy ou fonction Supabase | `supabase/schema.sql` + « Modèle de données » de `docs/architecture.md` |
 | Nouveau composable, store ou utilitaire | Catalogue correspondant dans `docs/architecture.md` |
 | Nouvelle variable d'environnement | `.env.example` + `runtimeConfig` de `nuxt.config.ts` |

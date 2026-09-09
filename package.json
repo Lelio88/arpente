@@ -5,12 +5,14 @@
   "description": "Guide de visite interactif — carte, parcours thematiques et puzzle AR",
   "scripts": {
     "dev": "nuxt dev",
+    "prebuild": "tsx scripts/check-basemap.ts",
     "build": "nuxt build",
+    "pregenerate": "tsx scripts/check-basemap.ts",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "typecheck": "nuxt typecheck",
-    "download-tiles": "tsx scripts/download-tiles.ts",
+    "download-basemap": "tsx scripts/download-basemap.ts",
     "compile-targets": "tsx scripts/compile-targets.ts",
     "verif": "tsx verif/agregation.ts && tsx verif/ics.ts"
   },
@@ -33,6 +35,8 @@
     "mind-ar": "^1.2.5",
     "nuxt": "^4.4.2",
     "pinia": "^3.0.4",
+    "pmtiles": "^3.2.1",
+    "protomaps-leaflet": "^5.1.0",
     "sass": "^1.98.0"
   },
   "devDependencies": {
