@@ -271,7 +271,7 @@ Le projet n'a **ni tests ni CI**. Trois filets seulement :
 
 `values/colors.xml` définit `colorPrimary`, `colorPrimaryDark` et `colorAccent`, que `styles.xml` référence sans que le squelette Capacitor ne les fournisse — sans ce fichier, la compilation échoue.
 
-**Signature.** `android/app/build.gradle` lit `android/keystore.properties`, non versionné, qui désigne le keystore en **chemin absolu** — Gradle résout les chemins relatifs depuis `android/app/`, et une erreur de chemin y passe inaperçue. Le keystore et les mots de passe vivent dans `.arpente-secrets/`, à la racine du conteneur, jamais dans le dépôt.
+**Signature.** La convention est celle du conteneur — emplacement, alias `upload`, identité du certificat, câblage Gradle : [`../../android-signing-guide.md`](../../android-signing-guide.md). Ici, `android/app/build.gradle` lit `android/keystore.properties`, non versionné, qui désigne le keystore en **chemin absolu** — Gradle résout les chemins relatifs depuis `android/app/`, et une erreur de chemin y passe inaperçue. Le keystore et les mots de passe vivent dans `.arpente-secrets/`, à la racine du conteneur, jamais dans le dépôt.
 
 Quand ce fichier manque, le build émet un avertissement et laisse l'AAB **non signé**, plutôt que de retomber sur la clé de débogage : un AAB signé en debug est accepté par Gradle et refusé par Play, c'est-à-dire découvert après l'envoi. Non signé, l'erreur est immédiate et se lit sur place.
 
