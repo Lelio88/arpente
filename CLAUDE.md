@@ -94,6 +94,7 @@ La caméra et la géolocalisation exigent un contexte sécurisé, y compris depu
 | Permission Android ajoutée | `android/app/src/main/AndroidManifest.xml` + garde-fou 10 ci-dessus + la Data safety de la fiche Play, qui doit rester en accord |
 | Marque retouchée (icône, écran de démarrage) | `assets/icon.png` puis recomposition des `mipmap-*` et `drawable*` — procédure et pièges dans « Plateforme Android » de `docs/architecture.md` |
 | Nouvel anti-pattern découvert | Section « Anti-patterns » de `docs/architecture.md` |
+| Illustration de POI ajoutée ou remplacée | `assets/credits-images.json` — auteur et licence, sans quoi l'app enfreint les licences CC BY-SA qu'elle redistribue |
 
 ## VIII. Contexte de Session
 

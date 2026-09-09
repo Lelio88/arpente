@@ -12,9 +12,27 @@ onMounted(() => {
   <Transition name="splash-fade">
     <div v-if="visible" class="splash">
       <div class="splash-content">
+        <!-- Le monogramme de l'app, identique a l'icone du lanceur et a
+             l'ecran de demarrage natif (drawable*/splash.png) : l'ouverture
+             enchaine trois fois la meme marque, sans rupture. Une maison verte
+             figurait ici avant que l'app ait une identite. -->
         <div class="splash-icon">
-          <svg viewBox="0 0 24 24" width="48" height="48" fill="#00ffaa">
-            <path d="M12 2L2 12h3v8h14v-8h3L12 2zm0 3.5L18 11h-1.5v7h-9v-7H6L12 5.5z"/>
+          <svg viewBox="0 0 512 512" width="64" height="64">
+            <defs>
+              <linearGradient id="splashCorail" x1="0" y1="1" x2="1" y2="0">
+                <stop offset="0" stop-color="#e94560" />
+                <stop offset="1" stop-color="#ff9a6b" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M 168 382 L 256 148 L 344 382" fill="none" stroke="#eaeaea"
+              stroke-width="36" stroke-linecap="round" stroke-linejoin="round"
+            />
+            <path
+              d="M 208 306 L 304 306" fill="none" stroke="#f2604f"
+              stroke-width="28" stroke-linecap="round"
+            />
+            <circle cx="256" cy="148" r="23" fill="url(#splashCorail)" />
           </svg>
         </div>
         <h1 class="splash-title">Arpente</h1>

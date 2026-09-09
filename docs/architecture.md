@@ -53,6 +53,7 @@ Le sens de dépendance descend toujours : une page peut appeler un store et un c
 | `content/` | 151 POI, 12 parcours, 8 tips, 1 puzzle — la donnée éditoriale, versionnée avec le code |
 | `scripts/` | Hors-app : extraction du fond de carte Protomaps, contrôle avant build, compilation des cibles AR |
 | `public/icons/` | Icônes servies par l'app : le manifest PWA les référence, et `icon-512.png` est aussi l'icône de la fiche Play |
+| `public/images/pois/` | Illustrations des fiches, `<slug>.jpg`, issues de Wikimedia Commons. Une fiche sans fichier reste correcte — voir `PoiImage` |
 | `assets/branding/` | Visuels destinés aux stores uniquement (bannière de la fiche). Jamais importés par le code, donc absents du bundle |
 | `assets/icon.png` | Source 1024×1024 de la marque, dont `@capacitor/assets` dérive les icônes natives Android |
 
@@ -254,6 +255,14 @@ Le projet n'a **ni tests ni CI**. Trois filets seulement :
 | OSRM public (`router.project-osrm.org`) | Itinéraire piéton | Pré-chargé au démarrage, cache de 7 jours ; l'app reste utilisable sans tracé |
 | Supabase | Groupes, pseudo, temps réel | Facultatif : sans configuration, seules les pages `/groups` sont hors service |
 | Compilateur MindAR en ligne | Génération des fichiers `.mind` | Étape manuelle assumée : le paquet `canvas` dont dépend mind-ar ne compile pas sous Windows. `scripts/compile-targets.ts` documente la marche à suivre et vérifie la présence des fichiers. |
+
+## Contenus tiers et attribution
+
+Le fond de carte vient d'OpenStreetMap (ODbL) et les photographies des fiches de Wikimedia Commons. Sur 42 illustrations, 34 sont sous licence CC BY-SA ou CC BY : **nommer l'auteur et la licence est une obligation juridique**, que la redistribution par un store rend opposable.
+
+`pages/credits.vue` porte ces mentions, alimentée par `assets/credits-images.json` — auteur, licence et lien vers la page du fichier, un par image. Le seul chemin qui y mène est un lien en bas de `/tips` : le retirer mettrait l'application en infraction, sans qu'aucun test ne s'en aperçoive.
+
+Une image ajoutée sans sa ligne de crédit est un défaut de conformité. Le fichier se régénère depuis les métadonnées Commons ; les licences non libres sont refusées à la source, tout comme les appariements douteux — un article homonyme donne vite le portrait d'un notable en guise de médiathèque.
 
 ## Plateforme Android
 

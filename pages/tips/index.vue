@@ -46,11 +46,28 @@ const tips = computed<Tip[]>(() =>
         </div>
       </NuxtLink>
     </div>
+
+    <!-- Les licences CC BY-SA des photographies imposent de nommer les auteurs
+         dans l'application elle-meme. Cette page est le seul chemin qui y mene :
+         la retirer mettrait l'app en infraction. -->
+    <NuxtLink to="/credits" class="lien-credits">
+      Crédits et licences
+    </NuxtLink>
   </div>
 </template>
 
 <style lang="scss" scoped>
 @use '~/assets/styles/variables' as *;
+
+.lien-credits {
+  display: block;
+  margin-top: $spacing-lg;
+  padding: $spacing-sm 0;
+  text-align: center;
+  color: $color-text-muted;
+  font-size: 0.85rem;
+  text-decoration: underline;
+}
 
 .page-tips {
   flex: 1;
