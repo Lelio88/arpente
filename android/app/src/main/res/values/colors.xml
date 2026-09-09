@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+  styles.xml reference ces trois couleurs, mais le squelette genere par
+  « npx cap add android » ne les definit nulle part : sans ce fichier, la
+  compilation echoue sur « resource color/colorPrimary not found ».
+
+  Les valeurs reprennent la palette de l'app (assets/styles/variables.scss)
+  pour que la barre de statut et les elements systeme s'accordent au theme
+  plutot que de retomber sur les couleurs par defaut d'AppCompat.
+-->
+<resources>
+    <color name="colorPrimary">#1a1a2e</color>
+    <color name="colorPrimaryDark">#131226</color>
+    <color name="colorAccent">#e94560</color>
+</resources>

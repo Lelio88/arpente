@@ -255,6 +255,22 @@ Le projet n'a **ni tests ni CI**. Trois filets seulement :
 | Supabase | Groupes, pseudo, temps réel | Facultatif : sans configuration, seules les pages `/groups` sont hors service |
 | Compilateur MindAR en ligne | Génération des fichiers `.mind` | Étape manuelle assumée : le paquet `canvas` dont dépend mind-ar ne compile pas sous Windows. `scripts/compile-targets.ts` documente la marche à suivre et vérifie la présence des fichiers. |
 
+## Plateforme Android
+
+`android/` est un projet Capacitor **versionné**. Il contient ce qu'aucune régénération ne saurait reproduire : le `versionCode`, la configuration de signature, les permissions et les icônes. Le `.gitignore` que Capacitor y dépose écarte le dérivé — `build/`, `.gradle/`, `local.properties` et les assets web recopiés par `cap sync`, soit les 15 Mo du bundle et des fonds de carte.
+
+`npm run generate` puis `npx cap sync android` suffisent à embarquer une nouvelle version du web. `npx cap add android` est à proscrire sur un projet existant : la commande réécrit le squelette.
+
+**Le manifeste ne déclare que `INTERNET` et la géolocalisation** (fine et approximative, sans `ACCESS_BACKGROUND_LOCATION`). `VIBRATE` arrive par fusion depuis le manifeste du plugin Haptics. La caméra n'est pas demandée tant que le puzzle AR est éteint, et l'agenda pas davantage : `useCalendar` passe par `createEventWithPrompt`, qui confie l'écriture à l'application d'agenda du système.
+
+**Icônes et écran de démarrage.** Ils dérivent tous de `assets/icon.png` (1024×1024). `capacitor-assets generate` met en place la matrice des densités, mais son résultat ne peut pas être conservé tel quel : l'outil traite l'icône source comme un *foreground* alors qu'elle est opaque et déjà composée, puis l'incruste avec 16,7 % de marge sur un fond blanc — d'où un liseré clair autour de l'icône, et un écran de démarrage blanc au milieu d'une app bleu nuit. Les fichiers en place ont donc été recomposés avec `sharp` :
+
+- `mipmap-*/ic_launcher.png` et `ic_launcher_round.png` — l'icône complète, la seconde masquée par un cercle ;
+- `mipmap-*/ic_launcher_background.png` — la même image en 108 dp, unique couche de l'icône adaptative : les XML de `mipmap-anydpi-v26/` déclarent un `<foreground>` transparent. La marque occupe 63 % du canvas, sous les 66 % visibles après masquage, donc aucun lanceur ne la rogne ;
+- `drawable*/splash.png` — fond `#1a1a2e` et la marque seule, rasterisée depuis son SVG, à 30 % du plus petit côté.
+
+`values/colors.xml` définit `colorPrimary`, `colorPrimaryDark` et `colorAccent`, que `styles.xml` référence sans que le squelette Capacitor ne les fournisse — sans ce fichier, la compilation échoue.
+
 ## Secrets et configuration
 
 `.env` (gitignoré, modèle dans `.env.example`) porte `NUXT_PUBLIC_SUPABASE_URL` et `NUXT_PUBLIC_SUPABASE_ANON_KEY`, relayés par `runtimeConfig.public`. La copie maîtresse vit dans `.arpente-secrets/`, à la racine du conteneur `Projets/`, hors de tout dépôt. Le serveur de développement n'exige plus aucun certificat : il en génère un à la volée, valable pour les IP locales détectées. La règle `*.pem` du `.gitignore` ne couvre plus qu'un certificat fourni à la main.

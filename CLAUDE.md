@@ -21,6 +21,7 @@ Topologie rapide — le dépôt **est** l'application, sans sous-dossier interm�
 - `utils/` — fonctions pures sans dépendance Vue (géométrie, agrégation de votes, iCalendar, slugs), vérifiées par `verif/` ; **importer explicitement** entre fichiers d'`utils/` plutôt que de compter sur l'auto-import de Nuxt, sinon ils ne s'exécutent plus hors du runtime
 - `supabase/schema.sql` — schéma, RLS et fonctions de la couche groupes
 - `scripts/` — outillage hors-app : extraction du fond de carte, contrôle avant build, compilation des cibles AR
+- `android/` — projet natif Capacitor, **versionné** : il porte les permissions, le `versionCode`, la signature et les icônes, que `npx cap add` ne saurait pas régénérer
 
 ## III. Pile Technologique
 
@@ -47,6 +48,8 @@ Topologie rapide — le dépôt **est** l'application, sans sous-dossier interm�
 6. **TypeScript strict, pas de `any`.** `<script setup lang="ts">` partout, types du domaine dans `types/index.ts`, pas de logique métier dans les composants (déléguer aux composables, stores et `utils/`).
 7. **Rien de spécifique à une ville en dur dans le code.** Centre, zoom et libellés viennent de `CITIES` (`stores/city.ts`) ; la carte reçoit `center`, `zoom` et `city` en props.
 8. **Le fond de carte ne se télécharge jamais depuis `tile.openstreetmap.org`.** La politique de la fondation OSM interdit le téléchargement en masse et le service le refuse. Chaque ville a son archive `public/basemaps/<ville>.pmtiles`, extraite du basemap Protomaps par `npm run download-basemap` — dossier non versionné, dont l'absence arrête le build. L'attribution OpenStreetMap est obligatoire : elle est portée par la couche Leaflet.
+9. **`android/` se modifie, ne se régénère pas.** Le dossier est versionné parce qu'il porte ce qu'aucun outil ne saurait reconstituer : le `versionCode` — que Play exige **strictement croissant** d'un envoi à l'autre, sans retour en arrière possible —, la configuration de signature, les permissions et les icônes. `npx cap sync` recopie les assets web sans y toucher ; `npx cap add android` les effacerait.
+10. **Le manifeste ne déclare que les permissions réellement exercées.** Aujourd'hui : `INTERNET` et la géolocalisation, plus `VIBRATE` fusionnée depuis Haptics. Pas de `CAMERA` tant que le puzzle AR est éteint, pas de permission d'agenda puisque `useCalendar` délègue l'écriture au système via `createEventWithPrompt`. Chaque permission ajoutée se paie en justification auprès de Google et en ligne de plus dans la Data safety.
 
 ## V. Flux de Travail (Explore → Plan → Code → Verify)
 
@@ -88,6 +91,8 @@ La caméra et la géolocalisation exigent un contexte sécurisé, y compris depu
 | Nouveau composable, store ou utilitaire | Catalogue correspondant dans `docs/architecture.md` |
 | Nouvelle variable d'environnement | `.env.example` + `runtimeConfig` de `nuxt.config.ts` |
 | Dépendance critique ajoutée ou retirée | Section III ci-dessus + `package.json` |
+| Permission Android ajoutée | `android/app/src/main/AndroidManifest.xml` + garde-fou 10 ci-dessus + la Data safety de la fiche Play, qui doit rester en accord |
+| Marque retouchée (icône, écran de démarrage) | `assets/icon.png` puis recomposition des `mipmap-*` et `drawable*` — procédure et pièges dans « Plateforme Android » de `docs/architecture.md` |
 | Nouvel anti-pattern découvert | Section « Anti-patterns » de `docs/architecture.md` |
 
 ## VIII. Contexte de Session

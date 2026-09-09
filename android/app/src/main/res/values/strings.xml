@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Arpente</string>
+    <string name="title_activity_main">Arpente</string>
+    <string name="package_name">fr.arpente.app</string>
+    <string name="custom_url_scheme">fr.arpente.app</string>
+</resources>

@@ -10,8 +10,12 @@ dist/
 # serait un motif litteral qui ne filtre rien.
 .data/
 
-# Capacitor — projets natifs régénérés par « npx cap add »
-android/
+# Capacitor — le projet Android est versionné : il porte les permissions, le
+# versionCode que Play exige croissant, la configuration de signature et les
+# icônes natives. Régénérer « npx cap add android » les perdrait tous. Son
+# propre android/.gitignore écarte déjà le lourd et le dérivé : build/,
+# .gradle/, local.properties et les 15 Mo d'assets web recopiés par cap sync.
+# iOS n'est pas encore généré.
 ios/
 
 # Environnement — copie maîtresse dans .arpente-secrets/ (racine du conteneur)
