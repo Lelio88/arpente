@@ -189,36 +189,31 @@ journaux de plantage, identifiants publicitaires.
 Carte, parcours et fiches historiques : visitez la ville, même sans réseau.
 ```
 
-**Description longue** :
+**Description longue** (~1 250 caractères sur 4 000).
+
+⚠️ **Play conserve les retours à la ligne.** Ne pas replier ces paragraphes pour la
+lisibilité du fichier : collés tels quels, les pliures apparaîtraient au milieu des phrases
+sur un téléphone. Un paragraphe = une ligne.
 
 ```
 Arpente est un guide de visite qui tient dans la poche et se passe de connexion.
 
 UNE CARTE QUI FONCTIONNE HORS LIGNE
-Le fond de carte est embarqué dans l'application. Aucune donnée mobile n'est
-nécessaire pour se repérer, suivre un parcours ou lire une fiche : tout est là
-avant même le départ.
+Le fond de carte est embarqué dans l'application. Aucune donnée mobile n'est nécessaire pour se repérer, suivre un parcours ou lire une fiche : tout est là avant même le départ.
 
 DES FICHES QUI S'OUVRENT AU BON MOMENT
-Approchez d'un monument et sa fiche apparaît : histoire, dates, anecdotes.
-Plus de 150 lieux documentés à Caen et à Troyes, des abbayes romanes aux
-maisons à pans de bois, des vestiges médiévaux aux traces de 1944.
+Approchez d'un monument et sa fiche apparaît : histoire, dates, anecdotes. Plus de 150 lieux documentés à Caen et à Troyes, des abbayes romanes aux maisons à pans de bois, des vestiges médiévaux aux traces de 1944.
 
 DES PARCOURS THÉMATIQUES
-Une douzaine d'itinéraires prêts à suivre — médiéval, architectural, gourmand,
-romantique, mémoire de la guerre — avec distance, durée et étapes numérotées.
+Une douzaine d'itinéraires prêts à suivre — médiéval, architectural, gourmand, romantique, mémoire de la guerre — avec distance, durée et étapes numérotées.
 
 À PLUSIEURS, SI VOUS VOULEZ
-Créez un groupe, partagez son code, votez pour les lieux qui vous tentent :
-l'application compose l'itinéraire qui met tout le monde d'accord, et chacun
-suit l'avancée du groupe.
+Créez un groupe, partagez son code, votez pour les lieux qui vous tentent : l'application compose l'itinéraire qui met tout le monde d'accord, et chacun suit l'avancée du groupe.
 
 RESPECTUEUX PAR CONSTRUCTION
-Pas de compte à créer, pas de publicité, pas de traceur. Votre position ne
-quitte pas votre téléphone, sauf pour calculer un itinéraire à pied.
+Pas de compte à créer, pas de publicité, pas de traceur. Votre position ne quitte pas votre téléphone, sauf pour calculer un itinéraire à pied.
 
-Cartographie OpenStreetMap. Photographies Wikimedia Commons, auteurs crédités
-dans l'application.
+Cartographie OpenStreetMap. Photographies Wikimedia Commons, auteurs crédités dans l'application.
 ```
 
 **Coordonnées** : `heianenterpriseyt@gmail.com` · site web :
