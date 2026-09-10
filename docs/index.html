@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arpente — guide de visite</title>
+<meta name="description" content="Un guide de visite qui tient dans la poche et se passe de connexion : carte hors ligne, parcours thématiques et fiches historiques.">
+<style>
+  :root {
+    --nuit: #1a1a2e; --nuit-clair: #22243f; --corail: #e94560;
+    --texte: #eaeaea; --doux: #9a97ad; --trait: rgba(255,255,255,.09);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--nuit); color: var(--texte);
+    font: 16px/1.65 -apple-system, "Segoe UI", system-ui, sans-serif;
+  }
+  .bandeau {
+    background: linear-gradient(150deg, #22304f, #15152a);
+    padding: 64px 24px 56px; border-bottom: 1px solid var(--trait);
+  }
+  .contenu { max-width: 760px; margin: 0 auto; }
+  .marque { display: flex; align-items: center; gap: 16px; margin-bottom: 26px; }
+  .marque svg { width: 62px; height: 62px; border-radius: 15px; }
+  h1 { margin: 0 0 10px; font: 400 clamp(34px, 6vw, 46px)/1.05 Georgia, serif; letter-spacing: -.02em; }
+  .accroche { margin: 0; color: #cfcbdd; font-size: clamp(17px, 2.4vw, 19px); max-width: 52ch; }
+  main { padding: 44px 24px 72px; }
+  h2 { font-size: 19px; margin: 34px 0 10px; }
+  h2:first-child { margin-top: 0; }
+  p, li { color: #d6d3e0; }
+  ul { padding-left: 20px; }
+  li { margin-bottom: 8px; }
+  a { color: var(--corail); }
+  .cartes { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin: 22px 0 6px; }
+  .carte { background: var(--nuit-clair); border-radius: 10px; padding: 18px 20px; }
+  .carte h3 { margin: 0 0 6px; font-size: 15px; }
+  .carte p { margin: 0; font-size: 14.5px; color: var(--doux); }
+  footer { border-top: 1px solid var(--trait); padding: 26px 24px 60px; color: var(--doux); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="bandeau">
+  <div class="contenu">
+    <div class="marque">
+      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="f" cx="34%" cy="26%" r="86%">
+            <stop offset="0" stop-color="#22304f"/><stop offset="1" stop-color="#15152a"/>
+          </radialGradient>
+          <linearGradient id="c" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0" stop-color="#e94560"/><stop offset="1" stop-color="#ff9a6b"/>
+          </linearGradient>
+        </defs>
+        <rect width="512" height="512" fill="url(#f)"/>
+        <g transform="translate(256 256) scale(0.94) translate(-256 -256)">
+          <path d="M 168 382 L 256 148 L 344 382" fill="none" stroke="#eaeaea"
+                stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M 208 306 L 304 306" fill="none" stroke="#f2604f"
+                stroke-width="28" stroke-linecap="round"/>
+          <circle cx="256" cy="148" r="23" fill="url(#c)"/>
+        </g>
+      </svg>
+      <div>
+        <h1>Arpente</h1>
+      </div>
+    </div>
+    <p class="accroche">
+      Un guide de visite qui tient dans la poche et se passe de connexion.
+      Caen et Troyes, plus de 150 lieux, une douzaine de parcours.
+    </p>
+  </div>
+</div>
+
+<main class="contenu">
+
+  <div class="cartes">
+    <div class="carte">
+      <h3>Hors ligne</h3>
+      <p>Le fond de carte est embarqué. Ni réseau ni forfait à l'étranger pour se repérer.</p>
+    </div>
+    <div class="carte">
+      <h3>Au bon moment</h3>
+      <p>Approchez d'un monument, sa fiche s'ouvre : histoire, dates, anecdotes.</p>
+    </div>
+    <div class="carte">
+      <h3>À plusieurs</h3>
+      <p>Créez un groupe, votez pour les lieux, l'itinéraire se compose tout seul.</p>
+    </div>
+  </div>
+
+  <h2>Sans compte, sans publicité</h2>
+  <p>
+    Rien à créer, rien à installer d'autre. Aucune publicité, aucun traceur, aucune mesure
+    d'audience. Votre position ne quitte pas votre téléphone, sauf pour calculer un
+    itinéraire à pied. Le détail est dans la
+    <a href="./privacy.html">politique de confidentialité</a>.
+  </p>
+
+  <h2>Contenus</h2>
+  <ul>
+    <li>Cartographie <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> (ODbL), tuiles <a href="https://protomaps.com" target="_blank" rel="noopener">Protomaps</a>.</li>
+    <li>Photographies <a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>, sous licences libres — auteurs crédités dans l'application.</li>
+    <li>Itinéraires piétons <a href="https://project-osrm.org" target="_blank" rel="noopener">OSRM</a>.</li>
+  </ul>
+
+  <h2>Contact</h2>
+  <p>
+    <a href="mailto:heianenterpriseyt@gmail.com">heianenterpriseyt@gmail.com</a>
+  </p>
+
+</main>
+
+<footer class="contenu">
+  Arpente · <a href="./privacy.html">Politique de confidentialité</a>
+</footer>
+
+</body>
+</html>
