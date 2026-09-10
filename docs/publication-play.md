@@ -130,16 +130,28 @@ seulement.
   la procédure. **Surtout pas** la troisième option (« supprimées automatiquement sous
   90 jours ») : ce serait faux, aucune purge automatique n'existe.
 
-| Donnée | Collectée / Partagée | Requise ? | Finalité | Pourquoi |
-|---|---|---|---|---|
-| **Position exacte** | Collectée **et partagée** | Optionnelle | Fonctionnement de l'appli | Le calcul d'itinéraire envoie départ et arrivée à **OSRM**, service tiers. C'est un partage, pas un sous-traitant. La position affichée sur la carte, elle, ne quitte pas l'appareil. |
-| **Nom** (pseudonyme) | Collectée | Optionnelle | Fonctionnement de l'appli | Choisi librement, visible des membres du groupe. Groupes uniquement. |
-| **ID utilisateur** | Collectée | Optionnelle | Fonctionnement de l'appli | Identifiant anonyme créé pour la fonction Groupes. |
-| **Autre contenu généré par l'utilisateur** | Collectée | Optionnelle | Fonctionnement de l'appli | Nom du groupe, votes sur les lieux, étapes visitées. |
+| Donnée | Collectée | Partagée | Éphémère | Requise ? | Finalité |
+|---|---|---|---|---|---|
+| **Position exacte** | ✔ | **✔** | Non | Facultative | Fonctionnement de l'appli |
+| **Nom** (pseudonyme) | ✔ | ✗ | Non | Facultative | Fonctionnement de l'appli |
+| **ID utilisateur** | ✔ | ✗ | Non | Facultative | Fonctionnement de l'appli |
+| **Autre contenu généré par l'utilisateur** | ✔ | ✗ | Non | Facultative | Fonctionnement de l'appli |
 
-Toutes sont **optionnelles** : elles n'existent que si l'utilisateur ouvre la fonction
-Groupes. Aucune n'est traitée de façon éphémère — elles sont stockées en base. Aucune
-finalité d'analyse, de personnalisation ni de publicité.
+**« Partagée » n'est coché que pour la position**, et c'est le piège de cette section. Le
+calcul d'itinéraire envoie départ et arrivée à **OSRM**, une organisation extérieure :
+c'est un partage. Le pseudonyme, lui, est visible des autres membres du groupe — mais des
+utilisateurs de la même app ne sont pas « un tiers », et le Supabase auto-hébergé est
+notre propre backend, pas un destinataire externe.
+
+**Aucune n'est éphémère** : « éphémère » désigne une donnée gardée en mémoire le temps de
+répondre à une requête, jamais écrite. Tout ce qui est listé ici atterrit dans une table
+Postgres (`profiles`, `poi_votes`, `visited_pois`, `groups`). La position affichée sur la
+carte, elle, *serait* éphémère — mais la même donnée partant chez OSRM, la réponse **Non**
+reste la juste.
+
+**Toutes facultatives** : elles n'existent que si l'utilisateur ouvre la fonction Groupes.
+Aucune finalité d'analyse, de personnalisation ni de publicité — seul « Fonctionnement de
+l'appli » est coché.
 
 **Non collectées**, malgré ce qu'on pourrait croire : contacts, photos, fichiers, agenda
 (l'ajout d'un parcours passe par l'application d'agenda du système, qui écrit elle-même),
