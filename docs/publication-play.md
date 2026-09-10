@@ -175,8 +175,13 @@ journaux de plantage, identifiants publicitaires.
 
 ## 12. Fiche du Play Store
 
-- **Catégorie** : Voyages et infos locales
-- **Tags** (max 5) : Voyage · Tourisme · Cartes et navigation · Éducation · Culture
+- **Catégorie** : **Voyages et infos locales**. Pas *Cartes et navigation* — la carte est le
+  support, pas le produit. Et surtout pas *Éducation*, qui contredirait la réponse IARC
+  « produit d'actualité ou d'éducation → Non » : les deux doivent concorder.
+- **Tags** (5 maximum, choisis dans une liste fermée) — par ordre de priorité : guide de
+  voyage ou tourisme · cartes ou navigation · histoire, culture ou musées · hors ligne s'il
+  existe, c'est le vrai différenciateur · ville ou découverte locale. Aucun tag évoquant
+  l'éducation, pour la même raison de cohérence.
 
 **Description courte** (80 caractères max) :
 
