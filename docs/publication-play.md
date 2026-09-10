@@ -35,7 +35,8 @@ et le refus arrive après le téléversement.
 
 | Champ | Réponse |
 |---|---|
-| Nom de l'application | `Arpente — Guide de visite` |
+| Nom de l'application | `Arpente` |
+| Nom du package | `app.arpente` — déjà compilé dans l'AAB. Si la console ne le demande pas à la création, elle le déduit du premier bundle téléversé. **Définitif** dans les deux cas. |
 | Langue par défaut | Français (France) – fr-FR |
 | Application ou jeu | **Application** |
 | Gratuite ou payante | **Gratuite** — irréversible dans ce sens |
