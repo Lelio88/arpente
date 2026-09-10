@@ -87,16 +87,30 @@ déclarer expose à un retrait ; le sous-questionnaire se répond ainsi :
 | Modération des échanges ? | Non |
 | Interactions limitées à des personnes invitées ? | **Oui** — on rejoint un groupe par un code privé, il n'existe aucun appariement public |
 
-- Partage de la position précise avec d'autres utilisateurs → **Non**. Les membres voient
-  les étapes cochées, jamais la position de quiconque.
+### Section « Divers » — tout à Non
+
+| Question | Réponse |
+|---|---|
+| Partage de l'emplacement précis avec **d'autres utilisateurs** | **Non**. Aucune table ne stocke de coordonnées d'utilisateur : les membres voient les étapes cochées (`visited_pois`), jamais où quelqu'un se trouve. Sans contradiction avec la Data safety, qui déclare la position partagée **avec OSRM** — un service, pas un visiteur. |
+| Achats d'articles numériques | Non |
+| Récompenses, crypto, NFT | Non |
+| Navigateur Web ou moteur de recherche | **Non**, bien que l'app tourne dans une WebView Capacitor : l'utilisateur ne peut ouvrir aucune URL de son choix. |
+| Produit d'actualité ou d'éducation | **Non**. Les fiches sont documentaires, mais l'app n'est ni un média ni un produit pédagogique structuré — et sa catégorie est Voyages, pas Éducation. À revoir si cette catégorie changeait. |
 
 ---
 
 ## 7. Public cible
 
-Tranches **18 ans et plus**. L'application ne s'adresse pas aux enfants et n'en attire
-pas : cibler une tranche mineure déclencherait les contrôles « public mixte » et la
-déclaration des normes de sécurité des enfants, sans rapport avec un guide de visite.
+Tranches **18 ans et plus**, uniquement : cibler une tranche mineure déclencherait les
+contrôles « public mixte » et la déclaration des normes de sécurité des enfants, alors
+que l'app enregistre un pseudonyme et laisse des visiteurs se voir entre eux. Sans
+conséquence pour les testeurs — un choix 18+ ne bloque pas le téléchargement et n'écarte
+que les comptes supervisés par Family Link.
+
+- **Pourrait attirer involontairement les enfants ?** → **Non**. Ni personnage animé, ni
+  musique enfantine, ni mécanique de jeu : une carte, des photos de monuments, des textes
+  historiques. La question mériterait réexamen si le puzzle AR était réactivé.
+- **Programme Familles** → ne pas s'inscrire.
 
 ---
 
@@ -108,8 +122,13 @@ seulement.
 - Chiffrées en transit ? → **Oui** (HTTPS de bout en bout).
 - Méthode de création de compte → **« ne permet pas de créer un compte »** (identité
   anonyme, sans identifiant ni mot de passe).
-- Suppression d'une partie ou de la totalité des données sans supprimer le compte →
-  **Oui**, par courriel à `heianenterpriseyt@gmail.com`, indiqué dans la politique.
+- Sous-question qui suit : *« Les utilisateurs peuvent-ils se connecter avec des comptes
+  créés en dehors de l'appli ? »* → **Non**. Ni Google Sign-In, ni SSO, ni OAuth.
+- Moyen de demander la suppression des données (facultatif) → **Oui**, par courriel à
+  `heianenterpriseyt@gmail.com`. URL à fournir si demandée :
+  <https://lelio88.github.io/arpente/privacy.html>, dont la section « Vos droits » décrit
+  la procédure. **Surtout pas** la troisième option (« supprimées automatiquement sous
+  90 jours ») : ce serait faux, aucune purge automatique n'existe.
 
 | Donnée | Collectée / Partagée | Requise ? | Finalité | Pourquoi |
 |---|---|---|---|---|
