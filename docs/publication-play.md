@@ -62,7 +62,13 @@ l'utilisateur ne saisit aucun identifiant. Aucun compte de test à fournir.
 
 - Contient des annonces ? → **Non** (aucun SDK publicitaire).
 - Identifiant publicitaire ? → **Non**. L'app n'utilise ni AdMob, ni Firebase Analytics,
-  ni aucun outil de mesure.
+  ni aucun outil de mesure. Google recoupe cette réponse avec la permission
+  `com.google.android.gms.permission.AD_ID` du manifeste fusionné, absente ici — se
+  vérifie sans la console :
+
+  ```bash
+  aapt2 dump permissions android/app/build/outputs/apk/debug/app-debug.apk
+  ```
 
 ---
 
