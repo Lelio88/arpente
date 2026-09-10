@@ -232,18 +232,30 @@ Signing** activé → ajouter les testeurs → Envoyer pour examen.
 testeurs pendant 14 jours continus** avant de pouvoir demander la production. Sans objet
 si ce compte est antérieur ou a déjà satisfait l'exigence.
 
-**Notes de version** — 500 caractères maximum par langue :
+**Notes de version** — 399 caractères sur les 500 autorisés par langue. Mêmes retours à la
+ligne conservés que pour la description : un paragraphe par ligne, sans repli.
 
 ```
 Première version de test.
 
-Caen et Troyes : plus de 150 lieux, une douzaine de parcours, carte hors ligne.
-La fonction Groupes permet de préparer une visite à plusieurs.
+Caen et Troyes : plus de 150 lieux, 12 parcours, carte utilisable hors ligne. La fonction Groupes permet de préparer une visite à plusieurs.
 
-Ce qu'on aimerait savoir : la carte se charge-t-elle vite ? Les fiches
-s'ouvrent-elles au bon endroit quand vous marchez ? Le parcours proposé par un
-groupe vous semble-t-il cohérent ?
+Ce qui nous intéresse : la carte se charge-t-elle vite ? Les fiches s'ouvrent-elles au bon endroit quand vous marchez dans la rue ? Le parcours composé par un groupe vous paraît-il cohérent ?
+
+Retours : heianenterpriseyt@gmail.com
 ```
+
+Elles posent des questions au lieu de vanter l'app : ce qui n'a pas pu être vérifié ici,
+c'est précisément le comportement en marchant — proximité GPS, vitesse de chargement de la
+carte dehors. L'adresse de retour évite qu'un testeur trouve un bug sans savoir où le dire.
+
+**Pays/régions** : tout cocher (la case en tête de tableau sélectionne les 175). Sans effet
+réel en test fermé — seuls les testeurs de la liste installent — mais cette sélection est
+reprise telle quelle le jour d'une promotion en production.
+
+**Testeurs** : les listes d'adresses sont définies au niveau du **compte**, pas de l'app.
+Réutiliser celle des autres applications plutôt que de ressaisir des adresses
+(*Configuration → Test interne et fermé → Listes d'adresses e-mail*).
 
 ---
 
