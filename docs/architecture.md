@@ -111,6 +111,8 @@ Le store `vote` porte en plus l'abonnement Realtime : un seul canal ouvert à la
 
 Le backend n'est **pas** un projet Supabase cloud : le plan gratuit plafonne à deux projets actifs par utilisateur, et DewDrop et DeckHand les occupent. Arpente tourne donc sur une stack Supabase **auto-hébergée** sur le serveur Hetzner, derrière `api.arpente.heianenterprise.com`. L'API est identique — même `supabase-js`, mêmes politiques, même schéma. Détails d'exploitation : `INFRASTRUCTURE.md` du conteneur `Projets/`.
 
+Devant cette pile, le Caddy du serveur tient le rôle de Kong (routage des préfixes `/auth/v1`, `/rest/v1`, `/realtime/v1` et réponses CORS). Ce vhost est **versionné ici**, dans [`deploy/caddy/arpente.caddy`](../deploy/caddy/arpente.caddy) : il ne vivait que sur le serveur, où une réinstallation aurait reperdu ses trois pièges résolus (l'en-tête `apikey` que GoTrue ignore, le tenant Realtime lu dans le `Host`, et `X-Supabase-Api-Version` à exposer sans quoi l'app n'affiche qu'un message générique pour toute erreur d'authentification). `sh deploy/deploy-caddy.sh <serveur>` l'installe, valide la configuration **avant** de recharger — ce Caddy sert aussi trois autres projets — et remet l'ancienne copie en cas d'échec.
+
 `supabase/schema.sql` est appliqué **à la main** sur cette base — le projet n'utilise pas d'outil de migration. Le fichier décrit l'état cible du schéma ; toute évolution s'y ajoute et se rejoue.
 
 | Table | Rôle |

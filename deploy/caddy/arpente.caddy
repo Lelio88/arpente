@@ -1,0 +1,119 @@
+# Arpente — vhost Caddy de l'API (Supabase auto-hébergé, sans Kong).
+#
+# CE FICHIER EST LA SOURCE DE VÉRITÉ. Il est installé sur le serveur dans
+# /opt/arpente/caddy/arpente.caddy et importé par le Caddyfile de l'hôte
+# (« import /opt/arpente/caddy/arpente.caddy »), qui détient les ports 80/443.
+# Le modifier ici, puis : sh deploy/deploy-caddy.sh <serveur>.
+#
+# Autonome à dessein : aucun snippet de l'hôte, pour que ce fichier serve de
+# Caddyfile complet le jour où Arpente change de serveur. Les ports 9999
+# (GoTrue), 3011 (PostgREST) et 4000 (Realtime) sont ceux que le compose
+# d'Arpente publie sur la seule boucle locale ; Postgres ne publie rien.
+#
+# L'app elle-même n'est pas servie ici : c'est un build statique embarqué par
+# Capacitor. Ce nom n'expose que l'API.
+
+# Journalisation d'accès. Sans elle, un incident utilisateur (« la page ne
+# charge pas ») est indiagnosticable après coup : les journaux Docker ne
+# remontent qu'au dernier déploiement et ne voient pas les requêtes qui
+# n'atteignent jamais l'app. Les IP sont masquées à la source (/24 en v4, /32
+# en v6) : le diagnostic distingue des clients, il n'a pas à les identifier.
+# Caddy expurge déjà Authorization, Cookie et Set-Cookie. Rétention : 20 Mio
+# par fichier, 5 fichiers, 30 jours.
+(arpente_access_log) {
+	log {
+		output file /var/log/caddy/arpente-access.log {
+			roll_size 20MiB
+			roll_keep 5
+			roll_keep_for 720h
+		}
+		format filter {
+			wrap json
+			fields {
+				request>remote_ip ip_mask {
+					ipv4 24
+					ipv6 32
+				}
+				request>client_ip ip_mask {
+					ipv4 24
+					ipv6 32
+				}
+			}
+		}
+	}
+}
+
+api.arpente.heianenterprise.com {
+	import arpente_access_log
+
+	# CORS — rôle tenu par Kong dans un Supabase officiel, absent ici (voir
+	# INFRASTRUCTURE.md du conteneur). Kong consomme l'en-tête « apikey » avant
+	# GoTrue et répond lui-même aux contrôles préalables ; sans lui, GoTrue
+	# reçoit un contrôle annonçant « apikey », en-tête qu'il n'a jamais eu à
+	# connaître, et refuse. Comme supabase-js envoie toujours apikey, aucun
+	# navigateur ni WebView ne pouvait joindre cette API — l'app mobile comprise.
+	@preflight method OPTIONS
+	handle @preflight {
+		header {
+			Access-Control-Allow-Origin "*"
+			Access-Control-Allow-Methods "GET, POST, PATCH, PUT, DELETE, OPTIONS"
+			Access-Control-Allow-Headers "accept, accept-profile, apikey, authorization, content-type, content-profile, prefer, range, x-client-info, x-supabase-api-version"
+			Access-Control-Max-Age "86400"
+		}
+		respond 204
+	}
+
+	# « header <nom> <valeur> » REMPLACE la valeur existante. C'est ce qu'on
+	# veut : GoTrue émet déjà un Access-Control-Allow-Origin, et un navigateur
+	# qui en voit deux refuse la réponse. On retire aussi Allow-Credentials,
+	# invalide en présence de « * » — les jetons Supabase voyagent dans
+	# Authorization, jamais dans un cookie.
+	header {
+		Access-Control-Allow-Origin "*"
+		# X-Supabase-Api-Version doit être exposé : un navigateur ne lit que
+		# les en-têtes exposés, et sans celui-ci le client Supabase croit
+		# parler à une ancienne API, cherche « error_code » dans un corps qui
+		# dit « code », et rend une erreur sans code — l'app n'affiche plus
+		# qu'un message générique pour toutes les erreurs d'authentification
+		# (mot de passe faux, adresse non confirmée, limite atteinte).
+		# Invisible hors navigateur : un client Dart ou curl voit tous les
+		# en-têtes et fonctionne.
+		Access-Control-Expose-Headers "content-range, content-profile, x-supabase-api-version, x-sb-error-code"
+		-Access-Control-Allow-Credentials
+	}
+
+	handle /auth/v1/* {
+		uri strip_prefix /auth/v1
+		reverse_proxy 127.0.0.1:9999
+	}
+
+	handle /rest/v1/* {
+		uri strip_prefix /rest/v1
+		reverse_proxy 127.0.0.1:3011
+	}
+
+	# handle_path et non handle + uri strip_prefix : Caddy RÉORDONNE les
+	# directives (rewrite passe avant uri), si bien que le préfixe était rajouté
+	# avant d'être retiré et Realtime recevait /socket/realtime/v1/websocket.
+	# handle_path retire le préfixe dès le matcher, donc avant tout rewrite.
+	handle_path /realtime/v1/* {
+		rewrite * /socket{uri}
+		# Realtime résout le tenant depuis le PREMIER SEGMENT du Host. C'est la
+		# raison d'être du nom de conteneur « realtime-dev.supabase-realtime »
+		# dans le compose officiel : Kong lui transmet ce Host et le tenant
+		# « realtime-dev » en sort. Caddy parlant à la loopback, il doit
+		# fabriquer ce Host lui-même, sans quoi Realtime cherche un tenant
+		# « api » et ferme la connexion.
+		reverse_proxy 127.0.0.1:4000 {
+			header_up Host realtime-dev.arpente
+		}
+	}
+
+	# Tout le reste est une erreur d'adressage, pas une page à servir.
+	# Répondre en JSON évite qu'un client la prenne pour une réponse
+	# applicative malformée.
+	handle {
+		header Content-Type application/json
+		respond `{"message":"Arpente API — /auth/v1 et /rest/v1 uniquement"}` 404
+	}
+}

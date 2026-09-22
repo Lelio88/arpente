@@ -21,6 +21,7 @@ Topologie rapide — le dépôt **est** l'application, sans sous-dossier interm�
 - `utils/` — fonctions pures sans dépendance Vue (géométrie, agrégation de votes, iCalendar, slugs), vérifiées par `verif/` ; **importer explicitement** entre fichiers d'`utils/` plutôt que de compter sur l'auto-import de Nuxt, sinon ils ne s'exécutent plus hors du runtime
 - `supabase/schema.sql` — schéma, RLS et fonctions de la couche groupes
 - `scripts/` — outillage hors-app : extraction du fond de carte, contrôle avant build, compilation des cibles AR
+- `deploy/caddy/arpente.caddy` — vhost Caddy de l'API en ligne, **versionné** : il ne vit ailleurs que sur le serveur, où une réinstallation le perdrait ; installé par `deploy/deploy-caddy.sh`
 - `android/` — projet natif Capacitor, **versionné** : il porte les permissions, le `versionCode`, la signature et les icônes, que `npx cap add` ne saurait pas régénérer
 
 ## III. Pile Technologique
@@ -96,6 +97,7 @@ La caméra et la géolocalisation exigent un contexte sécurisé, y compris depu
 | Marque retouchée (icône, écran de démarrage) | `assets/icon.png` puis recomposition des `mipmap-*` et `drawable*` — procédure et pièges dans « Plateforme Android » de `docs/architecture.md` |
 | Nouvel anti-pattern découvert | Section « Anti-patterns » de `docs/architecture.md` |
 | Illustration de POI ajoutée ou remplacée | `assets/credits-images.json` — auteur et licence, sans quoi l'app enfreint les licences CC BY-SA qu'elle redistribue |
+| Routage, CORS ou port de l'API en ligne | `deploy/caddy/arpente.caddy` **puis** `sh deploy/deploy-caddy.sh <serveur>` + `INFRASTRUCTURE.md` du conteneur |
 
 ## VIII. Contexte de Session
 
