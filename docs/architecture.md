@@ -49,9 +49,10 @@ Le sens de dépendance descend toujours : une page peut appeler un store et un c
 | `components/route/` | Carte de parcours, checklist des étapes, suivi de progression |
 | `components/ar/` | Flux caméra, reconnaissance de cible MindAR, overlay Canvas du tracé, animation de réussite |
 | `components/group/` | Création et adhésion d'un groupe, demande de pseudo, liste des membres, vote sur les POI (`PoiVoteList`) et préférences de parcours (`PreferenceForm`) |
-| `components/ui/` | Barre de navigation, sélecteur de ville, écran de démarrage |
+| `components/ui/` | Barre de navigation, sélecteur de ville, écran d'ouverture animé — voir « Ouverture de l'app » |
 | `content/` | 151 POI, 12 parcours, 8 tips, 1 puzzle — la donnée éditoriale, versionnée avec le code |
-| `scripts/` | Hors-app : extraction du fond de carte Protomaps, contrôle avant build, compilation des cibles AR |
+| `scripts/` | Hors-app : extraction du fond de carte Protomaps, contrôle avant build, compilation des cibles AR, synthèse du jingle d'ouverture |
+| `public/audio/` | Le jingle d'ouverture, **généré** par `npm run gen-jingle` : on ne le retouche pas dans un éditeur, on relance le script |
 | `public/icons/` | Icônes servies par l'app : le manifest PWA les référence, et `icon-512.png` est aussi l'icône de la fiche Play |
 | `public/images/pois/` | Illustrations des fiches, `<slug>.jpg`, issues de Wikimedia Commons. Une fiche sans fichier reste correcte — voir `PoiImage` |
 | `assets/branding/` | Visuels destinés aux stores uniquement (bannière de la fiche). Jamais importés par le code, donc absents du bundle |
@@ -265,6 +266,17 @@ Le fond de carte vient d'OpenStreetMap (ODbL) et les photographies des fiches de
 `pages/credits.vue` porte ces mentions, alimentée par `assets/credits-images.json` — auteur, licence et lien vers la page du fichier, un par image. Le seul chemin qui y mène est un lien en bas de `/tips` : le retirer mettrait l'application en infraction, sans qu'aucun test ne s'en aperçoive.
 
 Une image ajoutée sans sa ligne de crédit est un défaut de conformité. Le fichier se régénère depuis les métadonnées Commons ; les licences non libres sont refusées à la source, tout comme les appariements douteux — un article homonyme donne vite le portrait d'un notable en guise de médiathèque.
+
+## Ouverture de l'app
+
+`SplashScreen.vue` dessine la marque à chaque lancement : des pointillés montent puis redescendent le A comme un parcours sur la carte, le chemin se remplit, l'épingle tombe sur le sommet, la barre corail ferme la lettre, le mot monte. Six gestes, six notes de flûte en fa lydien — la mélodie monte jusqu'à l'épingle puis redescend, comme la lettre.
+
+La grammaire est celle de DewDrop et DeckHand : 2,2 s d'animation, un plancher de 2,3 s pour quitter l'intro sur le logo posé, un toucher saute l'attente, et l'accueil est monté **sous** l'intro dès le premier rendu (`app.vue`), si bien que ses chargements partent pendant l'animation. L'intro se retire seule et émet `fini` après son fondu ; aucun minuteur extérieur ne la double.
+
+- **Les battues sont jumelles.** `BATTUES` dans `SplashScreen.vue` (ms depuis le montage) et dans `scripts/gen-intro-jingle.ts` (s depuis la première note, soit 200 ms plus tard). Le CSS lit les premières via `--b1`…`--b6`. En déplacer une d'un seul côté désynchronise l'intro, ce qui ne s'entend qu'à l'oreille.
+- **Mouvement et son partent au montage**, pas au premier affichage : le HTML généré ne montre que le fond. Sur une WebView lente à démarrer, lancer le CSS dès l'affichage le décalerait du son.
+- **Le son n'est jamais une erreur.** Capacitor autorise la lecture sans geste (`setMediaPlaybackRequiresUserGesture(false)`) ; un navigateur la refuse, et en PWA hors ligne le MP3, hors du pré-cache, peut manquer. Dans les deux cas l'intro reste muette et continue.
+- `prefers-reduced-motion` montre directement la dernière image, le temps du plancher.
 
 ## Plateforme Android
 

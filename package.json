@@ -14,6 +14,7 @@
     "typecheck": "nuxt typecheck",
     "download-basemap": "tsx scripts/download-basemap.ts",
     "compile-targets": "tsx scripts/compile-targets.ts",
+    "gen-jingle": "tsx scripts/gen-intro-jingle.ts",
     "verif": "tsx verif/agregation.ts && tsx verif/ics.ts"
   },
   "dependencies": {

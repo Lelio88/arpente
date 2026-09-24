@@ -15,7 +15,7 @@ main avant d'ouvrir l'API.
 | Pièce | État |
 |---|---|
 | `applicationId` | `app.arpente` — **définitif** dès la première mise en ligne |
-| Version | `versionCode 1`, `versionName 1.0.0` (`android/app/build.gradle`) |
+| Version | `versionCode 2`, `versionName 1.1.0` (`android/app/build.gradle`) |
 | Signature | câblée sur `android/keystore.properties`, clé dans `.arpente-secrets/` |
 | AAB | `android/app/build/outputs/bundle/release/app-release.aab` (~21 Mo) |
 | Politique de confidentialité | <https://lelio88.github.io/arpente/privacy.html> |
