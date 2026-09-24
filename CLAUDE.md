@@ -20,7 +20,7 @@ Topologie rapide — le dépôt **est** l'application, sans sous-dossier interm�
 - `stores/` — état global Pinia : `city`, `route`, `puzzle`, `auth`, `group`, `vote`, `decision`, `groupRoute`
 - `utils/` — fonctions pures sans dépendance Vue (géométrie, agrégation de votes, iCalendar, slugs), vérifiées par `verif/` ; **importer explicitement** entre fichiers d'`utils/` plutôt que de compter sur l'auto-import de Nuxt, sinon ils ne s'exécutent plus hors du runtime
 - `supabase/schema.sql` — schéma, RLS et fonctions de la couche groupes
-- `scripts/` — outillage hors-app : extraction du fond de carte, contrôle avant build, compilation des cibles AR, synthèse du jingle d'ouverture
+- `scripts/` — outillage hors-app : extraction du fond de carte, contrôle avant build, compilation des cibles AR, synthèse du jingle d'ouverture, publication sur Play (`publish_play.py`, commun aux dépôts du conteneur)
 - `deploy/caddy/arpente.caddy` — vhost Caddy de l'API en ligne, **versionné** : il ne vit ailleurs que sur le serveur, où une réinstallation le perdrait ; installé par `deploy/deploy-caddy.sh`
 - `android/` — projet natif Capacitor, **versionné** : il porte les permissions, le `versionCode`, la signature et les icônes, que `npx cap add` ne saurait pas régénérer
 
@@ -77,6 +77,7 @@ npm run download-basemap         # fond de carte des deux villes (-- caen | -- t
 npm run compile-targets          # compile les cibles AR (.mind) depuis assets/targets/raw/
 npm run gen-jingle               # régénère public/audio/arpente_intro.mp3 (ffmpeg requis)
 npx cap sync && npx cap open android
+python scripts/publish_play.py --track alpha --notes-file notes.txt --dry-run   # puis sans --dry-run — voir docs/publication-play.md
 ```
 
 **Sous Windows, `npm install` échoue** sur `canvas`, dépendance native de `mind-ar`, faute de chaîne d'outils MSVC. Installer avec `npm install --ignore-scripts` : Nuxt, le typecheck et le build statique fonctionnent normalement. Seule la compilation locale des cibles `.mind` reste indisponible — elle passe de toute façon par le compilateur MindAR en ligne (voir `scripts/compile-targets.ts`).

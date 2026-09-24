@@ -5,8 +5,8 @@ exhaustives d'options, questionnaires IARC — vit hors du dépôt :
 [`../../play-store-publication-guide.md`](../../play-store-publication-guide.md). Ce
 fichier ne la répète pas : il porte **les réponses** de cette application.
 
-**Cible : test fermé** (piste `alpha`). Google exige une première release envoyée à la
-main avant d'ouvrir l'API.
+**Cible : test fermé** (piste `alpha`). La première release est partie à la main, comme
+Google l'exige ; les suivantes passent par l'API, avec `scripts/publish_play.py`.
 
 ---
 
@@ -27,7 +27,22 @@ main avant d'ouvrir l'API.
 Reconstruire l'AAB après toute modification :
 `npm run generate && npx cap sync android && cd android && ./gradlew bundleRelease`.
 **Incrémenter `versionCode` avant tout nouvel envoi** : Play refuse un numéro déjà reçu,
-et le refus arrive après le téléversement.
+et le refus arrive après le téléversement. Gradle 8 ne lit pas un JDK 25 (« Unsupported
+class file major version 69 ») : si c'est le Java par défaut, pointer `JAVA_HOME` sur le
+JDK 21 fourni avec Android Studio (`jbr/`).
+
+Publier sur la piste de test, essai à blanc d'abord :
+
+```bash
+python scripts/publish_play.py --track alpha --language fr-FR --notes-file notes.txt --dry-run
+python scripts/publish_play.py --track alpha --language fr-FR --notes-file notes.txt
+```
+
+Le script est **commun à tous les dépôts du conteneur** : on le recopie, on ne le modifie
+pas ici. Il lit la clé du compte de service `play-publisher` dans `.play-secrets/`, à la
+racine du conteneur, et ce compte n'a de droits que sur les pistes de test — la
+production reste hors de sa portée. L'essai à blanc téléverse le bundle mais abandonne
+l'edit : le `versionCode` n'est pas consommé. Dépend de `google-auth` et `requests`.
 
 ---
 

@@ -51,7 +51,7 @@ Le sens de dépendance descend toujours : une page peut appeler un store et un c
 | `components/group/` | Création et adhésion d'un groupe, demande de pseudo, liste des membres, vote sur les POI (`PoiVoteList`) et préférences de parcours (`PreferenceForm`) |
 | `components/ui/` | Barre de navigation, sélecteur de ville, écran d'ouverture animé — voir « Ouverture de l'app » |
 | `content/` | 151 POI, 12 parcours, 8 tips, 1 puzzle — la donnée éditoriale, versionnée avec le code |
-| `scripts/` | Hors-app : extraction du fond de carte Protomaps, contrôle avant build, compilation des cibles AR, synthèse du jingle d'ouverture |
+| `scripts/` | Hors-app : extraction du fond de carte Protomaps, contrôle avant build, compilation des cibles AR, synthèse du jingle d'ouverture, publication sur Play (`publish_play.py`, recopié tel quel des autres dépôts) |
 | `public/audio/` | Le jingle d'ouverture, **généré** par `npm run gen-jingle` : on ne le retouche pas dans un éditeur, on relance le script |
 | `public/icons/` | Icônes servies par l'app : le manifest PWA les référence, et `icon-512.png` est aussi l'icône de la fiche Play |
 | `public/images/pois/` | Illustrations des fiches, `<slug>.jpg`, issues de Wikimedia Commons. Une fiche sans fichier reste correcte — voir `PoiImage` |
