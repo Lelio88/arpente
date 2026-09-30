@@ -128,10 +128,32 @@ export const useGroupStore = defineStore('group', () => {
     }))
   }
 
+  /** Supprime un groupe pour tous (la RLS ne l'accepte que de son créateur). */
+  async function deleteGroup(groupId: string): Promise<void> {
+    const supabase = useSupabase()
+    const { data, error } = await supabase.from('groups').delete().eq('id', groupId).select('id')
+    if (error) throw error
+    if (!data?.length) throw new Error('not_group_creator')
+    myGroups.value = myGroups.value.filter(g => g.id !== groupId)
+    if (currentGroup.value?.id === groupId) {
+      currentGroup.value = null
+      members.value = []
+    }
+  }
+
+  /** Oublie tout l'état local (après « Supprimer mes données »). */
+  function oublier(): void {
+    myGroups.value = []
+    currentGroup.value = null
+    members.value = []
+  }
+
   return {
     myGroups,
     currentGroup,
     members,
+    deleteGroup,
+    oublier,
     loadMyGroups,
     createGroup,
     previewGroupByCode,

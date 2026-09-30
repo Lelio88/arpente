@@ -59,11 +59,11 @@ watch(
     </div>
 
     <div class="tracker-actions">
-      <button class="tracker-btn tracker-btn-list" @click="emit('toggleChecklist')">
-        <span>☰</span>
+      <button class="tracker-btn tracker-btn-list" type="button" aria-label="Liste des étapes" @click="emit('toggleChecklist')">
+        <span aria-hidden="true">☰</span>
       </button>
-      <button class="tracker-btn tracker-btn-stop" @click="emit('stop')">
-        <span>✕</span>
+      <button class="tracker-btn tracker-btn-stop" type="button" aria-label="Arrêter le parcours" @click="emit('stop')">
+        <span aria-hidden="true">✕</span>
       </button>
     </div>
   </div>

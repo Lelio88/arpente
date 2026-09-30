@@ -12,9 +12,9 @@ function selectCity(slug: typeof cityStore.currentCity) {
 
 <template>
   <div class="city-switcher safe-top">
-    <button class="city-pill" @click="open = !open">
-      <span>📍 {{ cityStore.currentCityConfig.name }}</span>
-      <span class="chevron" :class="{ open }">▾</span>
+    <button class="city-pill" type="button" :aria-expanded="open" @click="open = !open">
+      <span><span aria-hidden="true">📍 </span>{{ cityStore.currentCityConfig.name }}</span>
+      <span class="chevron" :class="{ open }" aria-hidden="true">▾</span>
     </button>
 
     <div v-if="open" class="city-options">

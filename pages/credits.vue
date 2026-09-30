@@ -17,6 +17,7 @@
  * métadonnées de Commons quand des images sont ajoutées. Une image livrée sans
  * sa ligne de crédit est un défaut de conformité, pas un oubli cosmétique.
  */
+import { LIENS_LEGAUX } from '~/utils/liensLegaux'
 import credits from '~/assets/credits-images.json'
 
 const VILLES: Record<string, string> = { caen: 'Caen', troyes: 'Troyes' }
@@ -34,6 +35,15 @@ const VILLES: Record<string, string> = { caen: 'Caen', troyes: 'Troyes' }
         les licences l'exigent.
       </p>
     </header>
+
+    <section class="bloc">
+      <h2>Informations légales</h2>
+      <p>
+        <a :href="LIENS_LEGAUX.confidentialite" target="_blank" rel="noopener">Politique de confidentialité</a>
+        ·
+        <a :href="LIENS_LEGAUX.mentions" target="_blank" rel="noopener">Mentions légales</a>
+      </p>
+    </section>
 
     <section class="bloc">
       <h2>Fond de carte</h2>

@@ -25,7 +25,7 @@ const routeStore = useRouteStore()
       <div class="checklist-header">
         <h3>{{ routeStore.activeRoute?.title }}</h3>
         <span class="checklist-progress">{{ routeStore.visitedCount }}/{{ routeStore.totalPois }}</span>
-        <button class="checklist-close" @click="emit('close')">✕</button>
+        <button class="checklist-close" type="button" aria-label="Fermer la liste des étapes" @click="emit('close')"><span aria-hidden="true">✕</span></button>
       </div>
 
       <div class="checklist-items">

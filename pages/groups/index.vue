@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useAuthStore } from '~/stores/auth'
 import { useGroupStore } from '~/stores/group'
+import { LIENS_LEGAUX } from '~/utils/liensLegaux'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -11,6 +12,25 @@ const groupsError = ref<string | null>(null)
 const isLoadingGroups = ref(false)
 const showCreateModal = ref(false)
 const showJoinModal = ref(false)
+const confirmeEffacement = ref(false)
+const isEffacement = ref(false)
+const effacementError = ref<string | null>(null)
+const donneesEffacees = ref(false)
+
+async function effacerMesDonnees() {
+  isEffacement.value = true
+  effacementError.value = null
+  try {
+    await authStore.deleteMyData()
+    groupStore.oublier()
+    confirmeEffacement.value = false
+    donneesEffacees.value = true
+  } catch {
+    effacementError.value = 'La suppression n\'a pas abouti. Vérifie ta connexion, puis réessaie.'
+  } finally {
+    isEffacement.value = false
+  }
+}
 
 async function loadGroups() {
   isLoadingGroups.value = true
@@ -51,7 +71,11 @@ function onGroupReady(code: string) {
       <p>Decidez ensemble d'un parcours, votez, suivez votre progression.</p>
     </header>
 
-    <p v-if="sessionError" class="groups-error">{{ sessionError }}</p>
+    <p v-if="donneesEffacees" class="groups-empty" role="status">
+      Tes données de groupe sont effacées : ton pseudo, tes groupes et tes votes.
+      Rouvre cette page pour repartir de zéro.
+    </p>
+    <p v-else-if="sessionError" class="groups-error">{{ sessionError }}</p>
     <p v-else-if="!authStore.isReady" class="groups-loading">Connexion...</p>
     <HandlePrompt v-else-if="!authStore.hasHandle" @handle-set="onHandleSet" />
 
@@ -69,6 +93,36 @@ function onGroupReady(code: string) {
       <div v-else class="groups-list">
         <GroupCard v-for="group in groupStore.myGroups" :key="group.id" :group="group" />
       </div>
+
+      <section class="groups-donnees" aria-labelledby="titre-donnees">
+        <h2 id="titre-donnees">Tes données</h2>
+        <p>
+          Ton pseudo, tes groupes et tes votes sont gardés sur notre serveur, en Allemagne.
+          Un groupe inactif depuis 6 mois est effacé tout seul.
+          <a :href="LIENS_LEGAUX.confidentialite" target="_blank" rel="noopener">Politique de confidentialité</a>
+        </p>
+        <p v-if="effacementError" class="groups-error">{{ effacementError }}</p>
+        <button
+          v-if="!confirmeEffacement"
+          class="action-button danger"
+          type="button"
+          @click="confirmeEffacement = true"
+        >
+          Supprimer mes données
+        </button>
+        <template v-else>
+          <p>
+            Ton pseudo, tes adhésions et tes votes seront effacés définitivement.
+            Les groupes que tu as créés restent aux autres membres.
+          </p>
+          <button class="action-button danger" type="button" :disabled="isEffacement" @click="effacerMesDonnees">
+            {{ isEffacement ? 'Suppression...' : 'Confirmer la suppression' }}
+          </button>
+          <button class="action-button" type="button" :disabled="isEffacement" @click="confirmeEffacement = false">
+            Annuler
+          </button>
+        </template>
+      </section>
     </template>
 
     <CreateGroupModal
@@ -144,6 +198,32 @@ function onGroupReady(code: string) {
     background: $color-highlight;
     color: white;
   }
+
+  // Action destructrice : contour et texte rouges, jamais un aplat qui la ferait
+  // passer pour l'action principale.
+  &.danger {
+    background: transparent;
+    border: 1px solid $color-highlight;
+    color: $color-highlight;
+  }
+}
+
+.groups-donnees {
+  margin-top: $spacing-xl;
+  padding-top: $spacing-lg;
+  border-top: 1px solid $color-surface-elevated;
+  color: $color-text-muted;
+  font-size: $font-size-sm;
+
+  h2 {
+    color: $color-text;
+    font-size: $font-size-md;
+    margin-bottom: $spacing-sm;
+  }
+
+  p { margin-bottom: $spacing-md; }
+  a { color: $color-text; }
+  .action-button { width: 100%; margin-bottom: $spacing-sm; }
 }
 
 .groups-list {

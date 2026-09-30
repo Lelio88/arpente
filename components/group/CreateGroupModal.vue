@@ -42,7 +42,7 @@ async function submit() {
     <div class="modal-panel">
       <div class="modal-header">
         <h3>Nouveau groupe</h3>
-        <button class="modal-close" @click="emit('close')">✕</button>
+        <button class="modal-close" type="button" aria-label="Fermer" @click="emit('close')"><span aria-hidden="true">✕</span></button>
       </div>
 
       <div class="modal-body">

@@ -80,6 +80,17 @@ api.arpente.heianenterprise.com {
 		# en-têtes et fonctionne.
 		Access-Control-Expose-Headers "content-range, content-profile, x-supabase-api-version, x-sb-error-code"
 		-Access-Control-Allow-Credentials
+
+		# En-têtes de sécurité (guide de conformité du conteneur, §C6). Une API
+		# qui ne sert que du JSON n'a rien à charger ni à s'afficher dans un
+		# cadre : CSP fermée et frame-ancestors 'none' ne gênent aucun client.
+		# HSTS sans « preload » : le retirer resterait possible.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		X-Frame-Options "DENY"
+		Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
+		-Server
 	}
 
 	handle /auth/v1/* {

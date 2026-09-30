@@ -13,7 +13,7 @@ Le code ne connaît aucune ville en particulier : une ville est une entrée de `
 ```
                        ┌──────────────────────────────────────────┐
    Coque native        │  Capacitor 8 (Android / iOS)             │
-   (facultative,       │  caméra · géoloc · haptique · Preferences│
+   (facultative,       │  caméra · géoloc · haptique · coffre     │
     le web fonctionne) └────────────────────┬─────────────────────┘
                                             │ WebView, charge .output/public
    ┌────────────────────────────────────────▼─────────────────────┐
@@ -80,7 +80,7 @@ Le store `vote` porte en plus l'abonnement Realtime : un seul canal ouvert à la
 | `city` | Ville active et sa configuration (`CITIES` : centre, zoom, libellé) | `localStorage` (`arpente-city`) |
 | `route` | Parcours actif, index de l'étape, POI déjà visités | mémoire |
 | `puzzle` | Identifiants des puzzles résolus | `localStorage` |
-| `auth` | Session anonyme Supabase, pseudo (`profiles.handle`) | Supabase + Preferences (natif) |
+| `auth` | Session anonyme Supabase, pseudo (`profiles.handle`), reprise d'une identité effacée côté serveur, « Supprimer mes données » (`delete_my_account`) | Supabase + coffre chiffré (natif) |
 | `group` | Groupes du membre, groupe courant, roster | Supabase |
 | `vote` | Approbations par POI, préférences de chaque membre, canal temps réel | Supabase + WebSocket |
 | `decision` | Dernier parcours arrêté du groupe | Supabase |
@@ -95,6 +95,8 @@ Le store `vote` porte en plus l'abonnement Realtime : un seul canal ouvert à la
 | `arTransform.ts` | Projette un point de la cible (0-1) vers l'écran via les matrices MindAR |
 | `ics.ts` | Génère un fichier iCalendar (RFC 5545) pour l'ajout à l'agenda depuis le navigateur |
 | `voteAggregation.ts` | Agrège les votes d'un groupe : approbation par POI, **médiane** des préférences de nombre et de durée, puis ordonnancement au plus proche voisin |
+| `sessionStorage.ts` | Stockage de la session : coffre chiffré avec reprise unique de l'ancienne session en clair (`stockageSessionMigrant`) ; `identiteDisparue` distingue une identité effacée par le serveur d'une simple panne réseau |
+| `liensLegaux.ts` | URL des pages légales publiées (`arpente.heianenterprise.com`) ; `confidentialite` est celle de la fiche Play |
 | `features.ts` | Drapeaux de ce que l'app expose. `AR_PUZZLE_ENABLED` conditionne l'accès au puzzle, qui reste éteint tant qu'aucune cible `.mind` n'est compilée |
 
 ## Système multi-ville
@@ -114,11 +116,11 @@ Le backend n'est **pas** un projet Supabase cloud : le plan gratuit plafonne à 
 
 Devant cette pile, le Caddy du serveur tient le rôle de Kong (routage des préfixes `/auth/v1`, `/rest/v1`, `/realtime/v1` et réponses CORS). Ce vhost est **versionné ici**, dans [`deploy/caddy/arpente.caddy`](../deploy/caddy/arpente.caddy) : il ne vivait que sur le serveur, où une réinstallation aurait reperdu ses trois pièges résolus (l'en-tête `apikey` que GoTrue ignore, le tenant Realtime lu dans le `Host`, et `X-Supabase-Api-Version` à exposer sans quoi l'app n'affiche qu'un message générique pour toute erreur d'authentification). `sh deploy/deploy-caddy.sh <serveur>` l'installe, valide la configuration **avant** de recharger — ce Caddy sert aussi trois autres projets — et remet l'ancienne copie en cas d'échec.
 
-`supabase/schema.sql` est appliqué **à la main** sur cette base — le projet n'utilise pas d'outil de migration. Le fichier décrit l'état cible du schéma ; toute évolution s'y ajoute et se rejoue.
+`supabase/schema.sql` décrit l'**état complet** du schéma, pour une base neuve. La base en service évolue par les fichiers de `supabase/migrations/`, joués **à la main** et une seule fois (`psql -v ON_ERROR_STOP=1 -1 -f …` dans le conteneur `arpente_db`) ; chaque migration est reportée dans `schema.sql` dans le même commit. `supabase/tests/conformite.test.sql` éprouve la RLS et la purge sur une base **jetable** (un `supabase start` local) : il tourne dans une transaction annulée.
 
 | Table | Rôle |
 |---|---|
-| `profiles` | Pseudo attaché à l'utilisateur anonyme ; unicité insensible à la casse |
+| `profiles` | Pseudo attaché à l'utilisateur anonyme ; unicité insensible à la casse ; lisible par soi-même et ses **coéquipiers** seulement (`shares_group_with`) |
 | `groups` | Groupe de visite : code d'invitation, ville, statut `voting` / `decided` |
 | `group_members` | Roster (clé primaire composite) |
 | `poi_votes` | Vote d'approbation : une ligne = un membre approuve un POI |
@@ -142,21 +144,18 @@ La distance vient d'OSRM quand le réseau répond, de la somme des haversines si
 
 Les deux bugs ont survécu à la relecture et au typage : ils ne vivent ni dans le TypeScript ni dans le SQL isolément, mais dans leur rencontre à l'exécution.
 
-### Ce qui ne peut pas être supprimé
+### Droits, suppression et purge
 
-Deux verrous, tous deux constatés à l'usage :
-
-- **Un groupe ne se supprime pas.** Il n'existe aucune policy `DELETE` sur `groups`. PostgREST répond pourtant `204` : sous RLS, une ligne invisible à la suppression n'est pas une erreur, simplement zéro ligne affectée. Un groupe créé par erreur reste donc indéfiniment, et les `on delete cascade` des tables enfants ne se déclenchent jamais. À trancher si le besoin apparaît — qui aurait le droit : le créateur seul, ou tout membre ?
-- Un `DELETE` qui « réussit » sans rien supprimer est précisément le genre de piège qu'un essai réel révèle et qu'une relecture laisse passer.
-
-### Suppression d'un compte
-
-`groups.created_by` référence `profiles(id)` **sans `on delete`**. Un profil ayant créé un groupe ne peut donc pas être supprimé tant que le groupe existe. C'est protecteur — aucun groupe ne perd son créateur par accident — mais cela veut dire qu'une suppression de compte devra traiter les groupes créés avant de retirer le profil.
+- **Un membre ne change que le statut d'un groupe** : la policy `update` dit *qui* (un membre), le `grant update (status)` par colonne dit *quoi*. Le nom, le code, la ville et le créateur ne bougent plus après la création.
+- **Seul le créateur supprime un groupe** (policy `delete`) ; tout part en cascade (votes, préférences, coches, parcours). Sous RLS, un `DELETE` refusé n'est pas une erreur mais zéro ligne affectée : `groupStore.deleteGroup` relit ce qu'il a supprimé et échoue s'il n'a rien touché.
+- **Chacun supprime son identité** (`delete_my_account()`, `security definer`, l'identifiant vient du jeton) : le profil part en cascade depuis `auth.users`, avec ses adhésions, ses votes et ses préférences. Les traces laissées chez les autres (`groups.created_by`, `visited_pois.user_id`, `decided_routes.decided_by`) passent à `null` (`on delete set null`) : le groupe reste aux autres, l'auteur s'affiche « ? ».
+- **Purge nocturne** (`purge_inactive()`, planifiée par `pg_cron` à 3 h 17) : groupe sans activité depuis **6 mois** (sa trace la plus récente, toutes tables confondues) ; identité anonyme membre d'aucun groupe depuis **30 jours** (`last_sign_in_at`, qui ne bouge pas au renouvellement de session). Ces durées sont celles que promet `docs/privacy.html`.
+- **L'app survit à une identité effacée** : au démarrage des groupes, `ensureSession` interroge le serveur (`getUser`) et, si l'identité n'existe plus (`identiteDisparue`), repart d'une identité neuve au lieu d'écrire un pseudo pour un compte disparu.
 
 ## Flux typique — rejoindre un groupe par son code
 
 1. L'utilisateur ouvre `/groups/<CODE>`. La route est en `ssr: false` (`routeRules`) : un code créé après le build ne peut pas être pré-rendu.
-2. `authStore.ensureSession()` reprend la session Supabase ou crée une **session anonyme** ; le jeton est stocké via `@capacitor/preferences` en natif (le `localStorage` d'une WebView peut être purgé sous pression mémoire), via le stockage par défaut sur le web.
+2. `authStore.ensureSession()` reprend la session Supabase (après avoir vérifié que le serveur connaît encore l'identité) ou crée une **session anonyme** ; en natif, la session vit dans un **coffre chiffré par le Keystore** (`@aparajita/capacitor-secure-storage`, via `utils/sessionStorage.ts`, qui reprend une fois l'ancienne session rangée en clair dans `@capacitor/preferences`) ; sur le web, dans le stockage par défaut.
 3. Le profil est chargé ; sans pseudo, l'écran renvoie vers `/groups` pour en choisir un (`profiles` en upsert).
 4. `previewGroupByCode()` appelle la fonction `security definer` : nom, ville, statut et nombre de membres, sans droit de lecture sur `groups`.
 5. `join_group_by_code()` insère l'adhésion avec `auth.uid()`, en `on conflict do nothing`.
@@ -242,13 +241,13 @@ Le store solo `route` **n'est pas modifié** : il sait déjà tracer, guider et 
 
 ## Stratégie de vérification
 
-Le projet n'a **ni tests ni CI**. Trois filets seulement :
+Le projet n'a **ni harnais de tests ni CI**. Les filets :
 
 1. `npm run typecheck` (vue-tsc, TypeScript strict) — la vérification de référence avant tout commit.
-2. `npm run generate` — un build statique qui passe prouve que le contenu parse et que rien de client-only n'a fuité côté serveur.
-3. L'appareil — GPS, caméra, tracé tactile et vibration ne se valident nulle part ailleurs.
-
-`utils/` est écrit en fonctions pures précisément pour rester vérifiable à la main ; c'est là qu'un premier harnais de tests aurait le meilleur rapport valeur/effort.
+2. `npm run verif` — exécute les fonctions pures de `utils/` avec `tsx` (agrégation des votes, iCalendar, stockage de session).
+3. `supabase/tests/conformite.test.sql` — RLS, suppression et purge, sur une base jetable.
+4. `npm run generate` — un build statique qui passe prouve que le contenu parse et que rien de client-only n'a fuité côté serveur.
+5. L'appareil — GPS, caméra, tracé tactile, vibration et coffre chiffré ne se valident nulle part ailleurs.
 
 ## Dépendances externes
 
@@ -297,6 +296,12 @@ La grammaire est celle de DewDrop et DeckHand : 2,2 s d'animation, un plancher d
 **Signature.** La convention est celle du conteneur — emplacement, alias `upload`, identité du certificat, câblage Gradle : [`../../android-signing-guide.md`](../../android-signing-guide.md). Ici, `android/app/build.gradle` lit `android/keystore.properties`, non versionné, qui désigne le keystore en **chemin absolu** — Gradle résout les chemins relatifs depuis `android/app/`, et une erreur de chemin y passe inaperçue. Le keystore et les mots de passe vivent dans `.arpente-secrets/`, à la racine du conteneur, jamais dans le dépôt.
 
 Quand ce fichier manque, le build émet un avertissement et laisse l'AAB **non signé**, plutôt que de retomber sur la clé de débogage : un AAB signé en debug est accepté par Gradle et refusé par Play, c'est-à-dire découvert après l'envoi. Non signé, l'erreur est immédiate et se lit sur place.
+
+## Poste de développement
+
+**Sous Windows, `npm install` échoue** sur `canvas`, dépendance native de `mind-ar`, faute de chaîne d'outils MSVC. Installer avec `npm install --ignore-scripts` : Nuxt, le typecheck et le build statique fonctionnent normalement. Seule la compilation locale des cibles `.mind` reste indisponible — elle passe de toute façon par le compilateur MindAR en ligne (voir `scripts/compile-targets.ts`).
+
+La caméra et la géolocalisation exigent un contexte sécurisé, y compris depuis une IP locale : le serveur de dev tourne donc en HTTPS. Le certificat est **auto-généré à chaque démarrage** par listhen, et couvre les IP du réseau local détectées — un téléphone sur le même Wi-Fi n'a qu'un avertissement d'auto-signature à accepter, sans erreur de nom. Aucun fichier `*.pem` à fournir.
 
 ## Secrets et configuration
 

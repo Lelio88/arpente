@@ -76,6 +76,27 @@ const auteurDecision = computed(() => {
   return groupStore.members.find(m => m.userId === id)?.handle ?? 'un membre'
 })
 
+const estCreateur = computed(() =>
+  !!groupStore.currentGroup && groupStore.currentGroup.createdBy === authStore.userId)
+const confirmeSuppression = ref(false)
+const isSuppression = ref(false)
+const suppressionError = ref<string | null>(null)
+
+async function supprimerLeGroupe() {
+  const groupe = groupStore.currentGroup
+  if (!groupe) return
+  isSuppression.value = true
+  suppressionError.value = null
+  try {
+    await groupStore.deleteGroup(groupe.id)
+    await navigateTo('/groups')
+  } catch {
+    suppressionError.value = 'La suppression n\'a pas abouti. Réessaie.'
+  } finally {
+    isSuppression.value = false
+  }
+}
+
 async function suivreSurLaCarte() {
   const groupe = groupStore.currentGroup
   const decision = decisionStore.current
@@ -226,6 +247,29 @@ async function rafraichir() {
           </template>
         </p>
       </section>
+
+      <section v-if="estCreateur" class="group-section">
+        <p v-if="suppressionError" class="decision-erreur">{{ suppressionError }}</p>
+        <button
+          v-if="!confirmeSuppression"
+          class="bouton-supprimer"
+          type="button"
+          @click="confirmeSuppression = true"
+        >
+          Supprimer le groupe
+        </button>
+        <template v-else>
+          <p class="decision-aide">
+            Le groupe, ses votes, sa progression et ses parcours seront effacés pour tous ses membres.
+          </p>
+          <button class="bouton-supprimer" type="button" :disabled="isSuppression" @click="supprimerLeGroupe">
+            {{ isSuppression ? 'Suppression...' : 'Confirmer la suppression' }}
+          </button>
+          <button class="bouton-rafraichir" type="button" :disabled="isSuppression" @click="confirmeSuppression = false">
+            Annuler
+          </button>
+        </template>
+      </section>
     </template>
   </div>
 </template>
@@ -353,6 +397,19 @@ async function rafraichir() {
   font-size: $font-size-sm;
   color: $color-highlight;
   margin-bottom: $spacing-sm;
+}
+
+.bouton-supprimer {
+  width: 100%;
+  padding: $spacing-sm;
+  margin-bottom: $spacing-sm;
+  background: transparent;
+  border: 1px solid $color-highlight;
+  border-radius: $radius-sm;
+  color: $color-highlight;
+  font-size: $font-size-sm;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .bouton-rafraichir {

@@ -1,5 +1,8 @@
 -- Arpente — schema des groupes/vote (Phase 0+).
--- A executer tel quel dans l'editeur SQL du projet Supabase (Supabase Studio > SQL Editor).
+-- État COMPLET, pour une base neuve : à exécuter tel quel (psql ou éditeur SQL).
+-- La base déjà en service évolue par les fichiers de supabase/migrations/,
+-- dont chacun est reporté ici dans le même commit.
+-- Vérification : supabase/tests/conformite.test.sql, sur une base jetable.
 
 -- ── Tables ──────────────────────────────────────────────────────────
 create table profiles (
@@ -15,7 +18,8 @@ create table groups (
   name        text not null,
   city        text not null check (city in ('caen', 'troyes')),
   status      text not null default 'voting' check (status in ('voting', 'decided')),
-  created_by  uuid not null references profiles(id),
+  -- Nullable : la suppression d'une identité laisse le groupe aux autres membres.
+  created_by  uuid references profiles(id) on delete set null,
   created_at  timestamptz not null default now()
 );
 
@@ -53,7 +57,7 @@ create table preference_votes (
 create table visited_pois (
   group_id   uuid not null references groups(id) on delete cascade,
   poi_slug   text not null,
-  user_id    uuid not null references profiles(id),
+  user_id    uuid references profiles(id) on delete set null,
   visited_at timestamptz not null default now(),
   primary key (group_id, poi_slug)
 );
@@ -69,7 +73,7 @@ create table decided_routes (
   distance_meters          numeric,
   duration_seconds         numeric,
   decided_at               timestamptz not null default now(),
-  decided_by               uuid not null references profiles(id)
+  decided_by               uuid references profiles(id) on delete set null
 );
 create index decided_routes_group_idx on decided_routes (group_id, decided_at desc);
 
@@ -127,6 +131,18 @@ language sql security definer set search_path = public stable as $$
   );
 $$;
 
+-- Même raison que is_group_member : lire group_members depuis une policy de
+-- profiles sans repasser par sa RLS.
+create or replace function shares_group_with(p_user uuid) returns boolean
+language sql security definer set search_path = public stable as $$
+  select exists (
+    select 1
+    from group_members moi
+    join group_members autre on autre.group_id = moi.group_id
+    where moi.user_id = auth.uid() and autre.user_id = p_user
+  );
+$$;
+
 alter table profiles enable row level security;
 alter table groups enable row level security;
 alter table group_members enable row level security;
@@ -135,8 +151,11 @@ alter table preference_votes enable row level security;
 alter table visited_pois enable row level security;
 alter table decided_routes enable row level security;
 
-create policy "profiles readable by signed-in users" on profiles
-  for select using (auth.uid() is not null);
+-- Soi-même et ses coéquipiers seulement : l'inscription anonyme étant libre,
+-- « tout utilisateur connecté » voulait dire n'importe qui, et la table
+-- s'énumérait entière.
+create policy "profiles: self or teammates" on profiles
+  for select using (id = auth.uid() or shares_group_with(id));
 create policy "profiles: self insert" on profiles
   for insert with check (id = auth.uid());
 create policy "profiles: self update" on profiles
@@ -152,8 +171,11 @@ create policy "groups: members select" on groups
   for select using (is_group_member(id) or created_by = auth.uid());
 create policy "groups: self-created insert" on groups
   for insert with check (created_by = auth.uid());
+-- La policy dit QUI ; le grant par colonne (plus bas) dit QUOI : seul le statut.
 create policy "groups: members update status" on groups
   for update using (is_group_member(id)) with check (is_group_member(id));
+create policy "groups: creator delete" on groups
+  for delete using (created_by = auth.uid());
 
 create policy "members: select roster" on group_members
   for select using (is_group_member(group_id));
@@ -199,6 +221,53 @@ grant select, insert, update, delete on
   profiles, groups, group_members, poi_votes, preference_votes, visited_pois, decided_routes
   to authenticated;
 grant execute on function preview_group_by_code, join_group_by_code, generate_join_code to authenticated;
+-- Un membre ne réécrit ni le nom, ni le code, ni le créateur d'un groupe : l'app
+-- ne change que le statut.
+revoke update on groups from authenticated;
+grant update (status) on groups to authenticated;
+
+-- ── Suppression par l'utilisateur ───────────────────────────────────
+-- Efface l'identité anonyme de l'appelant : le profil part en cascade, avec
+-- ses adhésions, ses votes et ses préférences ; ses groupes et ses coches
+-- restent aux autres (on delete set null). L'identifiant vient du jeton.
+create or replace function delete_my_account() returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then
+    raise exception 'not_authenticated';
+  end if;
+  delete from auth.users where id = auth.uid();
+end; $$;
+revoke execute on function delete_my_account() from public, anon;
+grant execute on function delete_my_account() to authenticated;
+
+-- ── Purge nocturne ──────────────────────────────────────────────────
+-- Groupe sans activité depuis 6 mois (sa trace la plus récente : création,
+-- adhésion, vote, préférence, coche, décision) ; identité anonyme membre
+-- d'aucun groupe depuis 30 jours (last_sign_in_at ne bouge pas au
+-- renouvellement de session). Durées annoncées par docs/privacy.html.
+create or replace function purge_inactive() returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  delete from groups g
+  where greatest(
+    g.created_at,
+    coalesce((select max(joined_at)   from group_members    where group_id = g.id), g.created_at),
+    coalesce((select max(created_at)  from poi_votes        where group_id = g.id), g.created_at),
+    coalesce((select max(updated_at)  from preference_votes where group_id = g.id), g.created_at),
+    coalesce((select max(visited_at)  from visited_pois     where group_id = g.id), g.created_at),
+    coalesce((select max(decided_at)  from decided_routes   where group_id = g.id), g.created_at)
+  ) < now() - interval '6 months';
+
+  delete from auth.users u
+  where u.is_anonymous
+    and coalesce(u.last_sign_in_at, u.created_at) < now() - interval '30 days'
+    and not exists (select 1 from group_members m where m.user_id = u.id);
+end; $$;
+revoke execute on function purge_inactive() from public, anon, authenticated;
+
+create extension if not exists pg_cron;
+select cron.schedule('arpente-purge', '17 3 * * *', 'select public.purge_inactive()');
 
 -- ── Realtime ────────────────────────────────────────────────────────
 alter publication supabase_realtime add table

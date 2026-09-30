@@ -73,7 +73,7 @@
       <span>Arpente</span>
     </div>
     <h1>Politique de confidentialité</h1>
-    <p class="maj">Application <code>fr.arpente.app</code> · Dernière mise à jour : 9 septembre 2026</p>
+    <p class="maj">Application <code>app.arpente</code> · Dernière mise à jour : 30 septembre 2026</p>
   </div>
 </div>
 
@@ -83,9 +83,17 @@
     <p>
       Arpente fonctionne sans compte et sans publicité. <strong>Votre position ne quitte
       jamais votre téléphone</strong>, sauf pour calculer un itinéraire à pied, et rien
-      n'est transmis tant que vous n'utilisez pas la fonction « Groupes ».
+      n'est enregistré sur un serveur tant que vous n'utilisez pas la fonction « Groupes ».
     </p>
   </div>
+
+  <h2>Responsable du traitement</h2>
+  <p>
+    Arpente est un projet personnel, non professionnel. Son éditeur est responsable des
+    traitements décrits ici ; vous pouvez le joindre à
+    <a href="mailto:heianenterpriseyt@gmail.com">heianenterpriseyt@gmail.com</a>
+    (voir les <a href="./mentions-legales.html">mentions légales</a>).
+  </p>
 
   <h2>Ce que l'application ne fait pas</h2>
   <ul>
@@ -109,40 +117,46 @@
     embarquée, l'application fonctionne entièrement hors ligne.
   </p>
 
-  <h2>Ce qui est transmis, et à qui</h2>
-
-  <h3 style="font-size:16px;margin:22px 0 6px">Calcul d'un itinéraire à pied</h3>
-  <p>
-    Lorsque vous demandez un trajet vers un lieu, les <strong>coordonnées de départ et
-    d'arrivée</strong> sont envoyées au service public
-    <a href="https://project-osrm.org" target="_blank" rel="noopener">OSRM</a>, qui renvoie
-    le tracé. Aucun identifiant ne l'accompagne : ces coordonnées ne sont rattachées à
-    aucune personne. Le résultat est mis en cache une semaine pour éviter de redemander
-    le même trajet.
-  </p>
-
-  <h3 style="font-size:16px;margin:22px 0 6px">Fonction « Groupes » — uniquement si vous l'utilisez</h3>
-  <p>
-    Préparer une visite à plusieurs suppose d'échanger des informations. Dans ce cas
-    seulement, l'application crée une identité <strong>anonyme</strong> — un identifiant
-    aléatoire, sans e-mail ni mot de passe — et enregistre :
-  </p>
-  <ul>
-    <li>le <strong>pseudonyme</strong> que vous choisissez, visible des autres membres ;</li>
-    <li>les groupes que vous rejoignez et leur code de partage ;</li>
-    <li>vos <strong>votes</strong> sur les lieux, ainsi que le nombre d'étapes et la durée que vous souhaitez ;</li>
-    <li>les étapes marquées comme visitées, partagées avec votre groupe ;</li>
-    <li>le parcours retenu par le groupe.</li>
-  </ul>
+  <h2>Ce qui est transmis, pourquoi, et combien de temps</h2>
+  <table>
+    <tr><th>Traitement</th><th>Données</th><th>Base légale</th><th>Durée</th></tr>
+    <tr>
+      <td><strong>Itinéraire à pied</strong>, quand vous le demandez</td>
+      <td>Coordonnées de départ et d'arrivée, reçues avec l'adresse IP de votre téléphone par le service public de démonstration du projet libre <a href="https://project-osrm.org" target="_blank" rel="noopener">OSRM</a> (<code>router.project-osrm.org</code>). Aucun identifiant d'Arpente ne les accompagne.</td>
+      <td>Intérêt légitime : vous fournir le trajet demandé</td>
+      <td>Selon les règles du service OSRM. Le tracé est gardé une semaine sur votre téléphone, pour ne pas redemander le même trajet.</td>
+    </tr>
+    <tr>
+      <td><strong>Fonction « Groupes »</strong>, uniquement si vous l'utilisez</td>
+      <td>Une identité anonyme (un identifiant aléatoire, sans e-mail ni mot de passe) ; le pseudonyme que vous choisissez, visible des membres de vos groupes ; les groupes rejoints et leur code ; vos votes, le nombre d'étapes et la durée souhaités ; les étapes cochées ; le parcours retenu.</td>
+      <td>Exécution du service que vous demandez (préparer une visite à plusieurs)</td>
+      <td>Un groupe est effacé après <strong>6 mois sans activité</strong>. Une identité anonyme qui n'appartient à aucun groupe est effacée après <strong>30 jours</strong>. Vous pouvez tout effacer vous-même avant (voir plus bas).</td>
+    </tr>
+    <tr>
+      <td><strong>Journaux techniques</strong> du serveur des groupes</td>
+      <td>Date et adresse des requêtes, avec une adresse IP tronquée (les derniers chiffres sont masqués à l'enregistrement)</td>
+      <td>Intérêt légitime : sécurité et diagnostic</td>
+      <td>30 jours</td>
+    </tr>
+  </table>
   <p>
     Choisissez un pseudonyme qui ne vous identifie pas si vous préférez rester anonyme :
-    rien ne vous oblige à donner votre vrai prénom.
+    rien ne vous oblige à donner votre vrai prénom. Votre pseudonyme n'est visible que de
+    vous et des membres de vos groupes.
   </p>
   <p>
-    Ces données sont hébergées sur un serveur que nous administrons, situé en
-    <strong>Allemagne</strong> (Hetzner Online GmbH), au sein de l'Union européenne. Elles
-    ne sont accessibles qu'aux membres de votre groupe et ne sont transmises à aucun tiers.
+    Les données des groupes sont hébergées sur un serveur que nous administrons, loué à
+    Hetzner Online GmbH et situé en Allemagne, dans l'Union européenne. Elles ne sont
+    accessibles qu'aux membres de votre groupe et ne sont transmises à aucun tiers.
+    Sur votre téléphone, l'accès à votre identité anonyme est rangé dans un stockage chiffré.
   </p>
+
+  <h2 id="suppression">Effacer vos données</h2>
+  <ul>
+    <li><strong>Tout effacer</strong> : dans l'application, <em>Groupes → Tes données → Supprimer mes données</em>. Votre identité anonyme, votre pseudonyme, vos adhésions et vos votes sont effacés immédiatement. Les groupes que vous avez créés restent aux autres membres.</li>
+    <li><strong>Supprimer un groupe</strong> que vous avez créé : depuis la page du groupe, <em>Supprimer le groupe</em>. Ses votes, sa progression et ses parcours sont effacés pour tous.</li>
+    <li><strong>Sans l'application</strong> : écrivez à <a href="mailto:heianenterpriseyt@gmail.com">heianenterpriseyt@gmail.com</a> en indiquant votre pseudonyme et le code du groupe, seuls éléments qui permettent de retrouver vos données. La suppression est faite sous 30 jours.</li>
+  </ul>
 
   <h2>Autorisations demandées</h2>
   <table>
@@ -151,38 +165,30 @@
     <tr><td>Accès au réseau</td><td>Calcul d'itinéraire et fonction « Groupes ». Le reste fonctionne hors ligne.</td></tr>
   </table>
   <p>
-    L'application <strong>ne demande ni l'appareil photo, ni l'agenda</strong>. L'ajout d'un
+    L'application ne demande ni l'appareil photo, ni l'agenda. L'ajout d'un
     parcours à votre agenda passe par l'application d'agenda de votre téléphone, qui vous
     montre l'événement avant d'enregistrer quoi que ce soit.
   </p>
 
-  <h2>Durée de conservation</h2>
-  <p>
-    Les données locales vivent tant que l'application est installée. Les données d'un
-    groupe sont conservées tant que le groupe existe ; sa suppression efface les votes et
-    la progression associés.
-  </p>
-
   <h2>Vos droits</h2>
   <p>
-    Conformément au RGPD, vous pouvez demander l'accès, la rectification ou l'effacement
-    des données vous concernant, ainsi que la suppression de votre identité anonyme et de
-    tout ce qui s'y rattache. Une simple demande par courriel suffit : indiquez votre
-    pseudonyme et le code du groupe concerné, seuls éléments qui permettent de retrouver
-    vos données.
+    Vous pouvez demander l'accès à vos données, leur rectification, leur effacement, leur
+    portabilité, la limitation d'un traitement, et vous opposer à ceux fondés sur l'intérêt
+    légitime. Le plus simple reste d'utiliser <em>Supprimer mes données</em> ; sinon, une
+    demande par courriel suffit :
+    <a href="mailto:heianenterpriseyt@gmail.com">heianenterpriseyt@gmail.com</a>
+    (réponse sous un mois).
   </p>
-  <div class="encadre">
-    <p>
-      <strong>Contact :</strong>
-      <a href="mailto:heianenterpriseyt@gmail.com">heianenterpriseyt@gmail.com</a><br>
-      Nous répondons sous 30 jours au plus.
-    </p>
-  </div>
+  <p>
+    Si vous estimez que vos droits ne sont pas respectés, vous pouvez adresser une
+    réclamation à la <a href="https://www.cnil.fr/fr/plaintes" target="_blank" rel="noopener">CNIL</a>
+    (3 place de Fontenoy, TSA 80715, 75334 Paris Cedex 07).
+  </p>
 
   <h2>Contenus tiers</h2>
   <ul>
-    <li>Fond de carte : données <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> (licence ODbL), tuiles extraites du basemap <a href="https://protomaps.com" target="_blank" rel="noopener">Protomaps</a> et embarquées dans l'application.</li>
-    <li>Photographies : <a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>, sous licences libres. Les auteurs sont nommés dans l'écran « Crédits » de l'application.</li>
+    <li>Fond de carte : données <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> (licence ODbL), tuiles extraites du basemap Protomaps et embarquées dans l'application.</li>
+    <li>Photographies : Wikimedia Commons, sous licences libres. Les auteurs sont nommés dans l'écran « Crédits » de l'application.</li>
     <li>Itinéraires piétons : <a href="https://project-osrm.org" target="_blank" rel="noopener">OSRM</a>.</li>
   </ul>
 
@@ -195,7 +201,7 @@
 </main>
 
 <footer class="contenu">
-  Arpente — guide de visite. Contact :
+  Arpente — guide de visite · <a href="./">Accueil</a> · <a href="./mentions-legales.html">Mentions légales</a> · Contact :
   <a href="mailto:heianenterpriseyt@gmail.com">heianenterpriseyt@gmail.com</a>
 </footer>
 

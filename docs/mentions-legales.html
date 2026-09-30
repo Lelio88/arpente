@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arpente — Mentions légales</title>
+<meta name="description" content="Mentions légales de l'application Arpente : éditeur et hébergeurs.">
+<style>
+  :root {
+    --nuit: #1a1a2e; --nuit-clair: #22243f; --corail: #e94560;
+    --texte: #eaeaea; --doux: #9a97ad; --trait: rgba(255,255,255,.09);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--nuit); color: var(--texte);
+    font: 16px/1.65 -apple-system, "Segoe UI", system-ui, sans-serif;
+  }
+  .bandeau {
+    background: linear-gradient(150deg, #22304f, #15152a);
+    padding: 48px 24px 40px; border-bottom: 1px solid var(--trait);
+  }
+  .contenu { max-width: 760px; margin: 0 auto; }
+  .marque { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+  .marque svg { width: 46px; height: 46px; border-radius: 11px; }
+  .marque span { font: 600 21px/1 Georgia, serif; letter-spacing: .01em; }
+  h1 { margin: 0 0 8px; font-size: clamp(26px, 5vw, 34px); letter-spacing: -.02em; }
+  .maj { color: var(--doux); font-size: 14px; margin: 0; }
+  main { padding: 36px 24px 72px; }
+  h2 {
+    font-size: 19px; margin: 38px 0 12px; padding-top: 20px;
+    border-top: 1px solid var(--trait);
+  }
+  h2:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+  p, li { color: #d6d3e0; }
+  ul { padding-left: 20px; }
+  li { margin-bottom: 7px; }
+  a { color: var(--corail); }
+  .encadre {
+    background: var(--nuit-clair); border-left: 3px solid var(--corail);
+    border-radius: 0 8px 8px 0; padding: 16px 20px; margin: 22px 0;
+  }
+  .encadre p { margin: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 15px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--trait); vertical-align: top; }
+  th { color: var(--doux); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; }
+  code { background: rgba(255,255,255,.07); padding: 1px 6px; border-radius: 4px; font-size: 14px; }
+  footer { border-top: 1px solid var(--trait); padding: 26px 24px 60px; color: var(--doux); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="bandeau">
+  <div class="contenu">
+    <div class="marque">
+      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="f" cx="34%" cy="26%" r="86%">
+            <stop offset="0" stop-color="#22304f"/><stop offset="1" stop-color="#15152a"/>
+          </radialGradient>
+          <linearGradient id="c" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0" stop-color="#e94560"/><stop offset="1" stop-color="#ff9a6b"/>
+          </linearGradient>
+        </defs>
+        <rect width="512" height="512" fill="url(#f)"/>
+        <g transform="translate(256 256) scale(0.94) translate(-256 -256)">
+          <path d="M 168 382 L 256 148 L 344 382" fill="none" stroke="#eaeaea"
+                stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M 208 306 L 304 306" fill="none" stroke="#f2604f"
+                stroke-width="28" stroke-linecap="round"/>
+          <circle cx="256" cy="148" r="23" fill="url(#c)"/>
+        </g>
+      </svg>
+      <span>Arpente</span>
+    </div>
+    <h1>Mentions légales</h1>
+    <p class="maj">Application <code>app.arpente</code></p>
+  </div>
+</div>
+
+<main class="contenu">
+
+  <h2>Éditeur</h2>
+  <p>
+    Arpente (application Android et pages web) est un projet personnel, non professionnel,
+    édité par un particulier (article 6-III-2 de la loi pour la confiance dans l'économie
+    numérique). Contact : <a href="mailto:heianenterpriseyt@gmail.com">heianenterpriseyt@gmail.com</a>
+  </p>
+
+  <h2>Hébergeur des pages web</h2>
+  <p>
+    GitHub, Inc. — 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, États-Unis —
+    +1 877 448 4820 — <a href="https://github.com" target="_blank" rel="noopener">github.com</a>
+  </p>
+
+  <h2>Hébergeur du serveur des groupes</h2>
+  <p>
+    Hetzner Online GmbH — Industriestr. 25, 91710 Gunzenhausen, Allemagne —
+    +49 9831 505-0 — <a href="https://www.hetzner.com" target="_blank" rel="noopener">hetzner.com</a>.
+    Le traitement des données est détaillé dans la
+    <a href="./privacy.html">politique de confidentialité</a>.
+  </p>
+
+  <h2>Crédits</h2>
+  <p>
+    Fond de carte © contributeurs OpenStreetMap (ODbL). Les auteurs et licences des
+    photographies sont listés dans l'application, écran « Crédits ».
+  </p>
+
+</main>
+
+<footer class="contenu">
+  Arpente — guide de visite · <a href="./">Accueil</a> · <a href="./privacy.html">Politique de confidentialité</a> · Contact :
+  <a href="mailto:heianenterpriseyt@gmail.com">heianenterpriseyt@gmail.com</a>
+</footer>
+
+</body>
+</html>

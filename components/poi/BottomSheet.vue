@@ -93,7 +93,7 @@ function collapse() {
             <h2 class="sheet-title">{{ poi.title }}</h2>
             <span v-if="poi.epoch" class="sheet-epoch">{{ poi.epoch }}</span>
           </div>
-          <button class="sheet-close" @click="collapse">✕</button>
+          <button class="sheet-close" type="button" aria-label="Fermer la fiche" @click="collapse"><span aria-hidden="true">✕</span></button>
         </div>
 
         <!-- Half+ -->

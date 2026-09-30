@@ -51,7 +51,7 @@ const tips = computed<Tip[]>(() =>
          dans l'application elle-meme. Cette page est le seul chemin qui y mene :
          la retirer mettrait l'app en infraction. -->
     <NuxtLink to="/credits" class="lien-credits">
-      Crédits et licences
+      Crédits, licences et confidentialité
     </NuxtLink>
   </div>
 </template>

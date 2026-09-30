@@ -9,7 +9,7 @@ import type {
 /** Ligne de `visited_pois`, jointe au pseudo de qui a coche. */
 interface LigneCochee {
   poi_slug: string
-  user_id: string
+  user_id: string | null
   profiles?: { handle: string } | null
 }
 import type { City, DecidedRoute, RouteThematic } from '~/types'
@@ -206,7 +206,11 @@ export const useGroupRouteStore = defineStore('groupRoute', () => {
       .subscribe((statut: string) => { isLive.value = statut === 'SUBSCRIBED' })
   }
 
-  async function rafraichirAuteur(poiSlug: string, userId: string): Promise<void> {
+  async function rafraichirAuteur(poiSlug: string, userId: string | null): Promise<void> {
+    if (!userId) { // son auteur a supprimé son identité
+      auteurs.value = { ...auteurs.value, [poiSlug]: '?' }
+      return
+    }
     const supabase = useSupabase()
     const { data } = await supabase.from('profiles').select('handle').eq('id', userId).maybeSingle()
     auteurs.value = { ...auteurs.value, [poiSlug]: data?.handle ?? '?' }

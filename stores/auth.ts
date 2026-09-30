@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { identiteDisparue } from '~/utils/sessionStorage'
 
 export const useAuthStore = defineStore('auth', () => {
   const userId = ref<string | null>(null)
@@ -11,7 +12,19 @@ export const useAuthStore = defineStore('auth', () => {
   async function ensureSession() {
     const supabase = useSupabase()
 
-    const { data: { session } } = await supabase.auth.getSession()
+    let { data: { session } } = await supabase.auth.getSession()
+
+    // La session gardée peut viser une identité que le serveur a effacée
+    // (purge après 30 jours sans groupe, « Supprimer mes données ») : sans ce
+    // contrôle, l'app écrirait un pseudo pour un compte qui n'existe plus.
+    // Hors ligne, getUser échoue sans statut : on garde la session.
+    if (session) {
+      const { error } = await supabase.auth.getUser()
+      if (identiteDisparue(error)) {
+        await supabase.auth.signOut({ scope: 'local' })
+        session = null
+      }
+    }
 
     if (session) {
       userId.value = session.user.id
@@ -53,6 +66,22 @@ export const useAuthStore = defineStore('auth', () => {
     handle.value = newHandle
   }
 
+  /**
+   * Efface l'identité anonyme et tout ce qui s'y rattache (pseudo, adhésions,
+   * votes, préférences) par la fonction serveur delete_my_account ; les groupes
+   * créés et les étapes cochées restent aux autres membres. La session locale
+   * est ensuite oubliée : une prochaine visite des groupes repart de zéro.
+   */
+  async function deleteMyData() {
+    const supabase = useSupabase()
+    const { error } = await supabase.rpc('delete_my_account')
+    if (error) throw error
+    await supabase.auth.signOut({ scope: 'local' })
+    userId.value = null
+    handle.value = null
+    isReady.value = false
+  }
+
   return {
     userId,
     handle,
@@ -60,5 +89,6 @@ export const useAuthStore = defineStore('auth', () => {
     hasHandle,
     ensureSession,
     setHandle,
+    deleteMyData,
   }
 })

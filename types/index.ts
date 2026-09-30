@@ -123,7 +123,8 @@ export interface Group {
   name: string
   city: City
   status: GroupStatus
-  createdBy: string
+  /** null si le créateur a supprimé son identité : le groupe reste aux autres. */
+  createdBy: string | null
   createdAt: string
 }
 
@@ -150,7 +151,7 @@ export interface PreferenceVote {
 export interface VisitedGroupPoi {
   groupId: string
   poiSlug: string
-  userId: string
+  userId: string | null
   visitedAt: string
 }
 
@@ -164,5 +165,5 @@ export interface DecidedRoute {
   distanceMeters: number | null
   durationSeconds: number | null
   decidedAt: string
-  decidedBy: string
+  decidedBy: string | null
 }

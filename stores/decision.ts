@@ -15,7 +15,7 @@ interface LigneDecision {
   distance_meters: number | string | null
   duration_seconds: number | string | null
   decided_at: string
-  decided_by: string
+  decided_by: string | null
 }
 
 /**
