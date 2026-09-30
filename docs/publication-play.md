@@ -15,10 +15,10 @@ Google l'exige ; les suivantes passent par l'API, avec `scripts/publish_play.py`
 | Pièce | État |
 |---|---|
 | `applicationId` | `app.arpente` — **définitif** dès la première mise en ligne |
-| Version | `versionCode 2`, `versionName 1.1.0` (`android/app/build.gradle`) |
+| Version | voir `versionCode` / `versionName` dans `android/app/build.gradle` |
 | Signature | câblée sur `android/keystore.properties`, clé dans `.arpente-secrets/` |
 | AAB | `android/app/build/outputs/bundle/release/app-release.aab` (~21 Mo) |
-| Politique de confidentialité | <https://lelio88.github.io/arpente/privacy.html> |
+| Politique de confidentialité | <https://arpente.heianenterprise.com/privacy.html> |
 | Icône 512 | `public/icons/icon-512.png` |
 | Bannière 1024×500 | `assets/branding/feature-graphic.png` |
 | Captures | `assets/branding/screenshots/{telephone,tablette-7,tablette-10}/` |
@@ -61,7 +61,7 @@ l'edit : le `versionCode` n'est pas consommé. Dépend de `google-auth` et `requ
 
 ## 3. Règles de confidentialité
 
-<https://lelio88.github.io/arpente/privacy.html>
+<https://arpente.heianenterprise.com/privacy.html>
 
 ---
 
@@ -145,11 +145,13 @@ seulement.
   anonyme, sans identifiant ni mot de passe).
 - Sous-question qui suit : *« Les utilisateurs peuvent-ils se connecter avec des comptes
   créés en dehors de l'appli ? »* → **Non**. Ni Google Sign-In, ni SSO, ni OAuth.
-- Moyen de demander la suppression des données (facultatif) → **Oui**, par courriel à
-  `heianenterpriseyt@gmail.com`. URL à fournir si demandée :
-  <https://lelio88.github.io/arpente/privacy.html>, dont la section « Vos droits » décrit
-  la procédure. **Surtout pas** la troisième option (« supprimées automatiquement sous
-  90 jours ») : ce serait faux, aucune purge automatique n'existe.
+- Moyen de demander la suppression des données (facultatif) → **Oui** : dans l'app
+  (*Groupes → Tes données → Supprimer mes données*), ou par courriel à
+  `heianenterpriseyt@gmail.com`. URL : <https://arpente.heianenterprise.com/privacy.html#suppression>.
+  **Pas** la troisième option (« supprimées automatiquement sous 90 jours ») : la purge
+  existe, mais à 6 mois d'inactivité pour un groupe, pas à 90 jours.
+- Cette section s'envoie aussi par l'API (`applications.dataSafety`, CSV du modèle de
+  Google) : les réponses ci-dessous en sont la source.
 
 | Donnée | Collectée | Partagée | Éphémère | Requise ? | Finalité |
 |---|---|---|---|---|---|
@@ -232,7 +234,7 @@ Cartographie OpenStreetMap. Photographies Wikimedia Commons, auteurs crédités 
 ```
 
 **Coordonnées** : `heianenterpriseyt@gmail.com` · site web :
-<https://lelio88.github.io/arpente/>
+<https://arpente.heianenterprise.com/>
 
 **Visuels** — chemins dans le dépôt, section 1 ci-dessus.
 
