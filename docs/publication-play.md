@@ -2,7 +2,7 @@
 
 Procédure **propre à Arpente**. La procédure générique — ordre des sections, listes
 exhaustives d'options, questionnaires IARC — vit hors du dépôt :
-[`../../play-store-publication-guide.md`](../../play-store-publication-guide.md). Ce
+[`../../docs/play-store-publication-guide.md`](../../docs/play-store-publication-guide.md). Ce
 fichier ne la répète pas : il porte **les réponses** de cette application.
 
 **Cible : test fermé** (piste `alpha`). La première release est partie à la main, comme
@@ -282,7 +282,7 @@ Inviter le compte de service sur cette application — Utilisateurs et autorisat
 `play-publisher@gen-lang-client-0893701619.iam.gserviceaccount.com`, limité à Arpente,
 autorisation **Déployer les applications sur des canaux de test** et rien de plus. Les
 envois suivants passeront alors par l'API (voir
-[`../../play-store-publication-guide.md`](../../play-store-publication-guide.md) §13).
+[`../../docs/play-store-publication-guide.md`](../../docs/play-store-publication-guide.md) §13).
 
 ---
 
