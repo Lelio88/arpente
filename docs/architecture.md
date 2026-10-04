@@ -95,6 +95,7 @@ Le store `vote` porte en plus l'abonnement Realtime : un seul canal ouvert à la
 | `arTransform.ts` | Projette un point de la cible (0-1) vers l'écran via les matrices MindAR |
 | `ics.ts` | Génère un fichier iCalendar (RFC 5545) pour l'ajout à l'agenda depuis le navigateur |
 | `voteAggregation.ts` | Agrège les votes d'un groupe : approbation par POI, **médiane** des préférences de nombre et de durée, puis ordonnancement au plus proche voisin |
+| `decision.ts` | Le cœur d'une décision de groupe, **partagé par l'app et par le service de l'assistant IA** : `preparerDecision` (lieux connus seulement, refus d'un parcours vide) et `mesurerTrajet` (OSRM, ou somme des haversines marquée `isEstimated`), dont le transport réseau est injecté par l'appelant |
 | `sessionStorage.ts` | Stockage de la session : coffre chiffré avec reprise unique de l'ancienne session en clair (`stockageSessionMigrant`) ; `identiteDisparue` distingue une identité effacée par le serveur d'une simple panne réseau |
 | `liensLegaux.ts` | URL des pages légales publiées (`arpente.heianenterprise.com`) ; `confidentialite` est celle de la fiche Play |
 | `features.ts` | Drapeaux de ce que l'app expose. `AR_PUZZLE_ENABLED` conditionne l'accès au puzzle, qui reste éteint tant qu'aucune cible `.mind` n'est compilée |
@@ -130,7 +131,7 @@ Devant cette pile, le Caddy du serveur tient le rôle de Kong (routage des préf
 
 Trois fonctions `security definer` portent la logique sensible : `generate_join_code()` (alphabet sans `O`/`0` ni `I`/`1`, ambigus à l'oral), `preview_group_by_code()` et `join_group_by_code()` — elles permettent de rejoindre un groupe **sans exposer la table `groups` en lecture**. `is_group_member()` est également `security definer` : une policy sur `group_members` qui se référencerait elle-même provoquerait une récursion RLS.
 
-`utils/voteAggregation.ts` produit le parcours : il retient les POI les mieux soutenus, en nombre égal à la **médiane** des envies du groupe, puis les relie de proche en proche. Le store `decision` l'appelle, mesure le trajet et écrit le résultat dans `decided_routes`.
+`utils/voteAggregation.ts` produit le parcours : il retient les POI les mieux soutenus, en nombre égal à la **médiane** des envies du groupe, puis les relie de proche en proche. `utils/decision.ts` l'enveloppe (lieux connus seulement, refus d'un parcours vide, mesure du trajet) ; le store `decision` l'appelle et écrit le résultat dans `decided_routes`, et le service de l'assistant IA fait de même — un parcours arrêté depuis l'app ou par l'assistant suit la même règle.
 
 **La décision est un instantané, pas un calcul permanent.** Un vote qui arrive après ne la modifie pas : le groupe part avec le parcours qu'il a validé, et non avec un itinéraire qui bougerait sous ses pieds en cours de visite. Redécider écrit une **nouvelle ligne** — l'historique reste lisible, et c'est pourquoi la table n'a ni `update` ni contrainte d'unicité par groupe.
 

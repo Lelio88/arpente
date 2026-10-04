@@ -1,8 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { City, Coordinates, DecidedRoute } from '~/types'
-import { aggregateGroupVotes } from '~/utils/voteAggregation'
-import { haversineDistance } from '~/utils/geo'
+import { mesurerTrajet, preparerDecision, type EnviesMembre } from '~/utils/decision'
 
 /** Ligne brute de `decided_routes` : colonnes SQL, avant passage au domaine. */
 interface LigneDecision {
@@ -34,17 +33,16 @@ interface LigneDecision {
  *   pas besoin d'un chef. Le nom de l'auteur est conserve (`decided_by`), ce qui
  *   suffit a la transparence.
  *
- * - **La distance vient d'OSRM quand le reseau repond, de la somme des
- *   haversines sinon.** L'ecart est reel — a pied, en ville, le trajet fait
- *   couramment 30 % de plus que la ligne droite — d'ou `isEstimated`, pour ne
- *   jamais afficher une approximation comme une mesure.
+ * - **Le calcul vit dans `utils/decision.ts`**, partagé avec le service de
+ *   l'assistant IA : un parcours arrêté depuis l'app ou par l'assistant suit
+ *   la même règle (choix des lieux, ordre, mesure OSRM ou estimation).
  *
  * Invariant : `decide()` refuse un groupe sans aucun POI approuve. Enregistrer
  * un parcours vide bloquerait le groupe en statut `decided` sans rien a suivre.
  */
 
-/** OSRM public : au-dela, l'URL devient deraisonnable et le service refuse. */
-const MAX_POINTS_OSRM = 25
+/** Transport de la mesure OSRM côté app : le `fetch` du navigateur. */
+const lireJson = async (url: string): Promise<unknown> => (await fetch(url)).json()
 
 export const useDecisionStore = defineStore('decision', () => {
   const current = ref<DecidedRoute | null>(null)
@@ -83,46 +81,6 @@ export const useDecisionStore = defineStore('decision', () => {
   }
 
   /**
-   * Mesure le trajet pieton reliant les POI dans l'ordre.
-   * Renvoie `isEstimated: true` quand OSRM n'a pas repondu et que la valeur
-   * provient de la somme des distances a vol d'oiseau.
-   */
-  async function mesurerTrajet(points: Coordinates[]): Promise<{
-    distanceMeters: number
-    durationSeconds: number | null
-    isEstimated: boolean
-  }> {
-    const aVolDOiseau = points.slice(1).reduce(
-      (total, point, i) => total + haversineDistance(points[i]!, point), 0)
-
-    if (points.length < 2 || points.length > MAX_POINTS_OSRM) {
-      return { distanceMeters: Math.round(aVolDOiseau), durationSeconds: null, isEstimated: true }
-    }
-
-    try {
-      const trace = points.map(p => `${p.lng},${p.lat}`).join(';')
-      const reponse = await fetch(
-        `https://router.project-osrm.org/route/v1/foot/${trace}?overview=false`)
-      const donnees = await reponse.json()
-
-      if (donnees.code !== 'Ok' || !donnees.routes?.[0]) {
-        return { distanceMeters: Math.round(aVolDOiseau), durationSeconds: null, isEstimated: true }
-      }
-
-      return {
-        distanceMeters: Math.round(donnees.routes[0].distance),
-        durationSeconds: Math.round(donnees.routes[0].duration),
-        isEstimated: false,
-      }
-    }
-    catch {
-      // Hors ligne, ou OSRM indisponible : la decision doit rester possible.
-      // Une distance approchee vaut mieux qu'un groupe bloque.
-      return { distanceMeters: Math.round(aVolDOiseau), durationSeconds: null, isEstimated: true }
-    }
-  }
-
-  /**
    * Arrete le parcours a partir des votes, l'enregistre, et bascule le groupe
    * en `decided`.
    *
@@ -133,28 +91,17 @@ export const useDecisionStore = defineStore('decision', () => {
     userId: string,
     city: City,
     approvals: Record<string, string[]>,
-    preferences: Record<string, { poiCount: number | null, durationMinutes: number | null }>,
+    preferences: Record<string, EnviesMembre>,
     coordonnees: Record<string, Coordinates>,
   ): Promise<DecidedRoute> {
     const supabase = useSupabase()
     isDeciding.value = true
 
     try {
-      const resultat = aggregateGroupVotes({
-        approvals,
-        poiCountPreferences: Object.values(preferences)
-          .map(p => p.poiCount).filter((n): n is number => n !== null),
-        durationPreferences: Object.values(preferences)
-          .map(p => p.durationMinutes).filter((n): n is number => n !== null),
-        poiCoordinates: coordonnees,
-      })
-
-      if (resultat.orderedSlugs.length === 0) {
-        throw new Error('aucun_poi_approuve')
-      }
+      const resultat = preparerDecision(approvals, Object.values(preferences), coordonnees)
 
       const trajet = await mesurerTrajet(
-        resultat.orderedSlugs.map(slug => coordonnees[slug]!).filter(Boolean))
+        resultat.orderedSlugs.map(slug => coordonnees[slug]!), lireJson)
 
       const { data, error } = await supabase
         .from('decided_routes')
