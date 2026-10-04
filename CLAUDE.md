@@ -96,5 +96,5 @@ python scripts/publish_play.py --track alpha --notes-file notes.txt --dry-run   
 
 ## VIII. Contexte de Session
 
-- **Dernier focus** : comptes et assistant IA (branche `comptes-assistant`) ; côté serveur, GoTrue des comptes, liste d'admission, migration 1 et service tournent, anonyme encore permis et OAuth fermé.
-- **Focus immédiat** : clients OAuth Google et widget Turnstile, puis publication de l'app sur la piste alpha, bascule (migration 2) et ouverture de l'assistant, dans l'ordre de `docs/mcp-architecture.md`.
+- **Dernier focus** : comptes et assistant IA (branche `comptes-assistant`) : serveur en ligne avec Google, Turnstile et compte d'examen Play ; 1.3.0 (versionCode 4) envoyée sur la piste alpha ; anonyme encore permis, CAPTCHA et OAuth fermés.
+- **Focus immédiat** : examen Google de la 1.3.0, puis bascule (CAPTCHA, anonyme coupé, migration 2) une fois les testeurs à jour, puis ouverture de l'assistant, dans l'ordre de `docs/mcp-architecture.md`.
