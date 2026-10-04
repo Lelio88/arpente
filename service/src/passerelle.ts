@@ -32,10 +32,22 @@
  * - `X-Forwarded-For`, posé par Caddy, est relayé tel quel : GoTrue limite par
  *   client d'après lui (`GOTRUE_RATE_LIMIT_HEADER`).
  *
+ * **Compte d'examen** (`config.examen`) : les examinateurs de Google Play ne
+ * reçoivent pas d'e-mail et n'ont pas le droit de créer un compte. Pour UNE
+ * adresse, définie sur le serveur, `/otp` n'envoie rien (même réponse, même
+ * délai) et `/verify` accepte un code fixe : la passerelle ouvre alors la
+ * session elle-même, par le mot de passe du compte que seul le service
+ * connaît (GoTrue sur le réseau interne ; le grant `password` reste fermé au
+ * public par Caddy). Un code fixe ne s'use pas comme un code de 15 minutes :
+ * en plus des compteurs ordinaires, au plus `MAX_ECHECS_EXAMEN` échecs par
+ * jour, toutes IP confondues. Toutes les autres adresses suivent le chemin
+ * ordinaire.
+ *
  * Invariant : aucun corps (adresse, code, jeton) n'est journalisé.
  */
-import { createHash } from 'node:crypto'
+import { createHash, timingSafeEqual } from 'node:crypto'
 import express, { type Request, type Response, type Router } from 'express'
+import type { CompteExamen } from './config'
 import { journal, messageErreur } from './journal'
 import { Fenetre } from './limites'
 
@@ -52,6 +64,9 @@ export const MAX_ECHECS_ADRESSE = 20
 export const ENVOIS_PAR_IP = 10
 export const VERIFICATIONS_PAR_IP = 30
 const FENETRE_IP_MS = 10 * 60 * 1000
+/** Compte d'examen : échecs tolérés par jour, toutes IP confondues (un code fixe n'expire pas). */
+export const MAX_ECHECS_EXAMEN = 10
+const FENETRE_EXAMEN_MS = 24 * 3600 * 1000
 // ASCII seulement, sans guillemets ni chevrons : une variante d'écriture que
 // GoTrue ramènerait à la même adresse (« <a@b.c> », « "a"@b.c », un İ turc
 // que Go et JavaScript ne mettent pas en minuscule de la même façon) aurait
@@ -109,8 +124,21 @@ function erreurGotrue(statut: number, code: string, message: string): string {
 }
 
 const TROP_D_ESSAIS = erreurGotrue(429, 'over_request_rate_limit', 'Trop d\'essais : réessaie dans quelques minutes.')
+/** Le refus de GoTrue pour un code faux ou expiré, mot pour mot. */
+const CODE_REFUSE = erreurGotrue(403, 'otp_expired', 'Token has expired or is invalid')
 
-export function routeurPasserelle(urlGotrue: string, maintenant: () => number = () => Date.now()): Router {
+function memeCode(a: string, b: string): boolean {
+  const x = Buffer.from(a)
+  const y = Buffer.from(b)
+  return x.length === y.length && timingSafeEqual(x, y)
+}
+
+export function routeurPasserelle(
+  urlGotrue: string,
+  maintenant: () => number = () => Date.now(),
+  examen: CompteExamen | null = null,
+): Router {
+  const estExamen = (adresse: string): boolean => examen !== null && adresse === examen.adresse
   // Deux compteurs d'échecs : par adresse ET par IP (un tiers qui se trompe
   // exprès ne bloque que lui-même), et par adresse seule, plus haut (le frein
   // d'un essai réparti sur de nombreuses IP).
@@ -118,6 +146,7 @@ export function routeurPasserelle(urlGotrue: string, maintenant: () => number = 
   const echecsAdresse = new Fenetre(MAX_ECHECS_ADRESSE, PAUSE_ECHECS_MS)
   const envoisIp = new Fenetre(ENVOIS_PAR_IP, FENETRE_IP_MS)
   const verificationsIp = new Fenetre(VERIFICATIONS_PAR_IP, FENETRE_IP_MS)
+  const echecsExamen = new Fenetre(MAX_ECHECS_EXAMEN, FENETRE_EXAMEN_MS)
   let enCours = 0
 
   async function relayer(req: Request, chemin: string, corps: Record<string, unknown>): Promise<RelaiGotrue> {
@@ -158,6 +187,11 @@ export function routeurPasserelle(urlGotrue: string, maintenant: () => number = 
       await attendre(Math.max(0, debut + DELAI_ENVOI_MS - maintenant()))
       repondre(res, 200, '{}', version)
     }
+    // Compte d'examen : aucun e-mail à envoyer, mais la réponse de tout le monde.
+    if (estExamen(adresse)) {
+      await reponseUniforme()
+      return
+    }
     enCours++
     // Corps reconstruit : create_user forcé (sinon GoTrue répond autrement à
     // une adresse inconnue), ni métadonnées ni adresse de redirection.
@@ -193,8 +227,10 @@ export function routeurPasserelle(urlGotrue: string, maintenant: () => number = 
     }
     const cleAdresse = empreinte(adresse)
     const cleAdresseIp = empreinte(`${adresse}|${ip}`)
+    const examinateur = estExamen(adresse)
     if (echecsAdresseIp.compte(cleAdresseIp, maintenant()) >= MAX_ECHECS_ADRESSE_IP
-      || echecsAdresse.compte(cleAdresse, maintenant()) >= MAX_ECHECS_ADRESSE) {
+      || echecsAdresse.compte(cleAdresse, maintenant()) >= MAX_ECHECS_ADRESSE
+      || (examinateur && echecsExamen.compte(cleAdresse, maintenant()) >= MAX_ECHECS_EXAMEN)) {
       repondre(res, 429, TROP_D_ESSAIS, version)
       return
     }
@@ -202,13 +238,32 @@ export function routeurPasserelle(urlGotrue: string, maintenant: () => number = 
     // passent pas toutes sous le plafond. Un succès efface le compte.
     echecsAdresseIp.ajoute(cleAdresseIp, maintenant())
     echecsAdresse.ajoute(cleAdresse, maintenant())
-    const r = await relayer(req, '/verify', { type: 'email', email: adresse, token: corps.token })
+    if (examinateur) echecsExamen.ajoute(cleAdresse, maintenant())
+    const r = examinateur
+      ? await connecterExamen(req, adresse, corps.token)
+      : await relayer(req, '/verify', { type: 'email', email: adresse, token: corps.token })
     if (r.statut >= 200 && r.statut < 300) {
       echecsAdresseIp.oublie(cleAdresseIp)
       echecsAdresse.oublie(cleAdresse)
+      echecsExamen.oublie(cleAdresse)
     }
     await attendre(Math.max(0, debut + PLANCHER_VERIFICATION_MS - maintenant()))
     repondre(res, r.statut, r.corps, r.version)
+  }
+
+  /**
+   * Code fixe juste : session ouverte par le mot de passe du compte d'examen.
+   * Faux : le refus mot pour mot de GoTrue, sans l'appeler.
+   */
+  async function connecterExamen(req: Request, adresse: string, code: string): Promise<RelaiGotrue> {
+    if (!examen || !memeCode(code, examen.code)) {
+      return { statut: 403, corps: CODE_REFUSE, version: req.get('x-supabase-api-version') ?? null }
+    }
+    const r = await relayer(req, '/token?grant_type=password', { email: adresse, password: examen.motDePasse })
+    if (r.statut >= 200 && r.statut < 300) return r
+    // Le compte d'examen est mal réglé (mot de passe, compte absent) : à corriger côté serveur.
+    journal.erreur('passerelle_examen_refuse', { statut: r.statut })
+    return { statut: 502, corps: erreurGotrue(502, 'unexpected_failure', 'Connexion momentanément impossible.'), version: r.version }
   }
 
   const avecErreurs = (f: (req: Request, res: Response) => Promise<void>) =>

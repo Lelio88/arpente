@@ -6,8 +6,15 @@ import assert from 'node:assert/strict'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { after, before, describe, test } from 'node:test'
-import { DELAI_ENVOI_MS, ENVOIS_PAR_IP } from '../src/passerelle'
+import { lireConfig, type CompteExamen } from '../src/config'
+import { DELAI_ENVOI_MS, ENVOIS_PAR_IP, MAX_ECHECS_ADRESSE_IP, MAX_ECHECS_EXAMEN } from '../src/passerelle'
 import { monterBanc, type Banc } from './aides'
+
+const EXAMEN: CompteExamen = {
+  adresse: 'examen.play@exemple.test',
+  code: '424242',
+  motDePasse: 'un-mot-de-passe-long-que-seul-le-service-connait',
+}
 
 let gotrue: Server
 let banc: Banc
@@ -44,6 +51,15 @@ before(async () => {
         }
         res.statusCode = 403
         res.end(JSON.stringify({ code: 403, error_code: 'otp_expired', msg: 'expiré' }))
+        return
+      }
+      if (req.url === '/token?grant_type=password') {
+        if (corps.email === EXAMEN.adresse && corps.password === EXAMEN.motDePasse) {
+          res.end(JSON.stringify({ access_token: 'jeton-examen', refresh_token: 'r', user: { email: corps.email } }))
+          return
+        }
+        res.statusCode = 400
+        res.end(JSON.stringify({ code: 400, error_code: 'invalid_credentials', msg: 'non' }))
       }
     })
   })
@@ -144,5 +160,106 @@ describe('vérification du code', () => {
     })
     assert.equal(r.status, 400)
     assert.equal((await verifier('a@b.c', '12345')).statut, 400)
+  })
+})
+
+describe('compte d\'examen (Google Play)', () => {
+  let examen: Banc
+
+  before(async () => {
+    examen = await monterBanc({ urlGotrue: `http://127.0.0.1:${(gotrue.address() as AddressInfo).port}`, examen: EXAMEN })
+  })
+  after(async () => { await examen.fermer() })
+
+  const appeler = async (chemin: string, corps: unknown) => {
+    const debut = Date.now()
+    const r = await fetch(`${examen.url}${chemin}`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(corps),
+    })
+    return { statut: r.status, corps: await r.text(), duree: Date.now() - debut }
+  }
+  const nombreRecus = () => recus.length
+
+  test('envoi d\'un code : même réponse, même délai, et aucun e-mail ne part', async () => {
+    const avant = nombreRecus()
+    const r = await appeler('/auth/v1/otp', { email: 'Examen.Play@exemple.test' })
+    assert.equal(r.statut, 200)
+    assert.equal(r.corps, '{}')
+    assert.ok(r.duree >= DELAI_ENVOI_MS - 20)
+    assert.equal(nombreRecus(), avant, 'GoTrue n\'est pas appelé : rien à envoyer')
+  })
+
+  test('le code fixe ouvre une session par mot de passe, côté serveur', async () => {
+    const r = await appeler('/auth/v1/verify', { type: 'email', email: EXAMEN.adresse, token: EXAMEN.code })
+    assert.equal(r.statut, 200)
+    assert.match(r.corps, /jeton-examen/)
+    const dernier = recus.at(-1)!
+    assert.equal(dernier.chemin, '/token?grant_type=password')
+    assert.deepEqual(dernier.corps, { email: EXAMEN.adresse, password: EXAMEN.motDePasse })
+  })
+
+  test('un mauvais code : le refus d\'un code expiré, sans appel à GoTrue', async () => {
+    const avant = nombreRecus()
+    const r = await appeler('/auth/v1/verify', { type: 'email', email: EXAMEN.adresse, token: '000001' })
+    assert.equal(r.statut, 403)
+    assert.match(r.corps, /otp_expired/)
+    assert.equal(nombreRecus(), avant)
+  })
+
+  test('le code fixe ne vaut que pour l\'adresse d\'examen', async () => {
+    const r = await appeler('/auth/v1/verify', { type: 'email', email: 'autre@exemple.test', token: EXAMEN.code })
+    assert.equal(r.statut, 403)
+    assert.equal(recus.at(-1)!.chemin, '/verify', 'une autre adresse suit le chemin ordinaire')
+  })
+
+  test('un code fixe ne s\'use pas : au plus MAX_ECHECS_EXAMEN échecs par jour, toutes IP confondues', async () => {
+    const banc3 = await monterBanc({ urlGotrue: `http://127.0.0.1:${(gotrue.address() as AddressInfo).port}`, examen: EXAMEN })
+    try {
+      const essai = (token: string) => fetch(`${banc3.url}/auth/v1/verify`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ type: 'email', email: EXAMEN.adresse, token }),
+      })
+      let echecs = 0
+      while (echecs < MAX_ECHECS_EXAMEN) {
+        for (let i = 0; i < MAX_ECHECS_ADRESSE_IP && echecs < MAX_ECHECS_EXAMEN; i++, echecs++) {
+          assert.equal((await essai('000002')).status, 403)
+        }
+        banc3.horloge.avancer(16 * 60) // la pause par adresse et IP est levée
+      }
+      assert.equal((await essai(EXAMEN.code)).status, 429, 'le plafond du jour tient, même avec le bon code')
+      banc3.horloge.avancer(24 * 3600)
+      assert.equal((await essai(EXAMEN.code)).status, 200, 'le lendemain, il revient')
+    }
+    finally {
+      await banc3.fermer()
+    }
+  })
+})
+
+describe('configuration du compte d\'examen', () => {
+  const base = {
+    PUBLIC_URL: 'https://api.exemple.test',
+    DATABASE_URL: 'postgres://x',
+    GOTRUE_URL: 'http://auth:9999',
+    ASSISTANT_SECRET: 'x'.repeat(40),
+  }
+
+  test('absent : pas de compte d\'examen', () => {
+    assert.equal(lireConfig(base).examen, null)
+  })
+
+  test('complet : adresse en minuscules', () => {
+    const c = lireConfig({ ...base, EXAMEN_ADRESSE: ' Examen@Exemple.Test ', EXAMEN_CODE: '123456', EXAMEN_MOT_DE_PASSE: 'y'.repeat(40) })
+    assert.deepEqual(c.examen, { adresse: 'examen@exemple.test', code: '123456', motDePasse: 'y'.repeat(40) })
+  })
+
+  test('incomplet ou faible : refus au démarrage', () => {
+    for (const partiel of [
+      { EXAMEN_ADRESSE: 'examen@exemple.test' },
+      { EXAMEN_ADRESSE: 'examen@exemple.test', EXAMEN_CODE: '12345', EXAMEN_MOT_DE_PASSE: 'y'.repeat(40) },
+      { EXAMEN_ADRESSE: 'examen@exemple.test', EXAMEN_CODE: '123456', EXAMEN_MOT_DE_PASSE: 'court' },
+    ]) {
+      assert.throws(() => lireConfig({ ...base, ...partiel }), /EXAMEN_/)
+    }
   })
 })

@@ -8,7 +8,7 @@ import type { AddressInfo } from 'node:net'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { creerApp } from '../src/app'
-import type { Config } from '../src/config'
+import type { CompteExamen, Config } from '../src/config'
 import { Catalogue, compilerContenu, type Ville } from '../src/contenu'
 import type { JugeJeton, Personne } from '../src/gotrue'
 import type {
@@ -164,7 +164,9 @@ export interface Banc {
   fermer: () => Promise<void>
 }
 
-export async function monterBanc(options: { urlGotrue?: string, oauthActif?: boolean } = {}): Promise<Banc> {
+export async function monterBanc(
+  options: { urlGotrue?: string, oauthActif?: boolean, examen?: CompteExamen | null } = {},
+): Promise<Banc> {
   const horloge = new Horloge()
   const autorisations = new AutorisationsMemoire(horloge)
   const groupes = new GroupesMemoire()
@@ -182,6 +184,7 @@ export async function monterBanc(options: { urlGotrue?: string, oauthActif?: boo
     clientGoogle: '',
     urlDocumentation: 'https://arpente.heianenterprise.com/assistant.html',
     oauthActif: options.oauthActif ?? true,
+    examen: options.examen ?? null,
   }
   const app = creerApp({
     config,

@@ -94,6 +94,10 @@ services:
       TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
       GOOGLE_WEB_CLIENT_ID: ${GOOGLE_WEB_CLIENT_ID:-}
       OAUTH_ACTIF: ${OAUTH_ACTIF:-false}
+      # Compte d'examen Google Play (les trois ensemble, ou aucun) : passerelle.ts.
+      EXAMEN_ADRESSE: ${EXAMEN_ADRESSE:-}
+      EXAMEN_CODE: ${EXAMEN_CODE:-}
+      EXAMEN_MOT_DE_PASSE: ${EXAMEN_MOT_DE_PASSE:-}
     ports:
       - "127.0.0.1:3012:3012"
     networks: [arpente]

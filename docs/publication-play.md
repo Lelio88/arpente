@@ -23,7 +23,7 @@ Google l'exige ; les suivantes passent par l'API, avec `scripts/publish_play.py`
 | Icône 512 | `public/icons/icon-512.png` |
 | Bannière 1024×500 | `assets/branding/feature-graphic.png` |
 | Captures | `assets/branding/screenshots/{telephone,tablette-7,tablette-10}/` |
-| Compte de test | **aucun** — l'examinateur se connecte avec son propre compte Google (§4) |
+| Compte de test | **compte d'examen à code fixe** (§4), valeurs dans `.arpente-secrets/examen.env` |
 
 Reconstruire l'AAB après toute modification :
 `npm run generate && npx cap sync android && cd android && ./gradlew bundleRelease`.
@@ -69,12 +69,24 @@ l'edit : le `versionCode` n'est pas consommé. Dépend de `google-auth` et `requ
 ## 4. Informations de connexion (*App access*)
 
 **Certaines fonctionnalités sont limitées** : la fonction Groupes demande un compte. La
-carte, les parcours et les fiches restent libres. Aucun identifiant à fournir — la
-connexion n'a pas de mot de passe, et le code par e-mail n'arriverait pas chez
-l'examinateur — mais une instruction, qui l'envoie vers Google :
+carte, les parcours et les fiches restent libres.
+
+Les examinateurs **ne peuvent ni créer de compte ni utiliser le leur**, et le code par
+e-mail ne leur arriverait pas : ils reçoivent le **compte d'examen**, une adresse qui
+accepte un code fixe sans envoi d'e-mail (passerelle du service,
+`docs/mcp-architecture.md`). Valeurs dans `.arpente-secrets/examen.env`.
+
+| Champ | Réponse |
+|---|---|
+| Nom | `Compte d'examen` |
+| Nom d'utilisateur | `EXAMEN_ADRESSE` |
+| Mot de passe | `EXAMEN_CODE` — le code à 6 chiffres, qui tient lieu de mot de passe |
+| Accès complet | **coché** : aucun contenu payant |
+
+**Toute autre information requise** :
 
 ```
-La carte, les parcours et les fiches sont accessibles sans compte. Seul l'onglet « Groupes » demande une connexion : touchez « Continuer avec Google » et utilisez n'importe quel compte Google (aucune invitation n'est nécessaire). La connexion par e-mail envoie un code à 6 chiffres à l'adresse saisie. Une fois connecté, créez un groupe : son code d'invitation permet à un second appareil de le rejoindre.
+La carte, les parcours et les fiches sont accessibles sans compte. Seul l'onglet « Groupes » demande une connexion : saisissez l'adresse ci-dessus, touchez « Recevoir un code » (cochez la vérification anti-robot si elle s'affiche), puis saisissez comme code le mot de passe ci-dessus, à 6 chiffres. Aucun e-mail n'est envoyé à cette adresse. Choisissez ensuite un pseudo et créez un groupe : son code d'invitation permet à un second appareil de le rejoindre.
 ```
 
 ---

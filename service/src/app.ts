@@ -70,7 +70,7 @@ export function creerApp(d: Dependances): express.Express {
   const cles = { turnstile: d.config.cleTurnstile, google: d.config.clientGoogle }
 
   app.get('/sante', (_req, res) => { res.json({ ok: true }) })
-  app.use(routeurPasserelle(d.config.urlGotrue, d.maintenant))
+  app.use(routeurPasserelle(d.config.urlGotrue, d.maintenant, d.config.examen))
   app.use('/connexion', express.static(join(ici, 'pages', 'public'), {
     index: false,
     maxAge: '1h',

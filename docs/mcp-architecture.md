@@ -84,6 +84,7 @@ service ── rôle arpente_assistant ── SET LOCAL ROLE authenticated + cla
 - **`/verify`** n'admet que `type: email` et un code à 6 chiffres. Pause de 15 minutes après **5 échecs pour une adresse depuis une même IP** (un tiers qui se trompe exprès ne bloque que lui-même) ou **20 toutes IP confondues** ; l'essai est compté avant d'être relayé, pour que des requêtes parallèles ne passent pas toutes (C1 : GoTrue ne compte que par adresse IP). Les adresses ne sont gardées qu'en empreinte.
 - **Adresse normalisée** : ASCII seulement, sans guillemets ni chevrons, mise en minuscules — la clé des compteurs et ce que reçoit GoTrue sont la même chaîne.
 - **Plafonds par IP** : 10 envois et 30 vérifications par 10 minutes ; au-delà de 32 envois en cours, 503. Ces refus ne dépendent que de l'IP ou de la charge, jamais de l'adresse.
+- **Compte d'examen** (`EXAMEN_*`) : les examinateurs de Google Play ne reçoivent pas d'e-mail et n'ont pas le droit de créer un compte. Pour cette seule adresse, `/otp` n'envoie rien (même réponse, même délai) et `/verify` accepte un **code fixe** ; la passerelle ouvre alors la session par le **mot de passe** du compte, que seul le service connaît, auprès de GoTrue sur le réseau interne — le grant `password` reste fermé au public par Caddy. Un code fixe n'expirant pas, s'ajoute aux compteurs ordinaires un plafond de **10 échecs par jour**, toutes IP confondues. Le compte est un compte ordinaire, créé une fois par l'API d'administration de GoTrue (`email_confirm: true`, mot de passe) ; adresse, code et mot de passe vivent dans `.arpente-secrets/examen.env`, et le code va dans la Play Console (`docs/publication-play.md` §4).
 
 ## Configuration
 
@@ -95,6 +96,7 @@ service ── rôle arpente_assistant ── SET LOCAL ROLE authenticated + cla
 | `ASSISTANT_SECRET` | Secret des jetons d'assistant (≥ 32 caractères), distinct de `JWT_SECRET` |
 | `TURNSTILE_SITE_KEY`, `GOOGLE_WEB_CLIENT_ID` | Clés publiques des pages ; vides = sans CAPTCHA, sans bouton Google |
 | `OAUTH_ACTIF` | `true` ouvre l'assistant ; sinon seules la passerelle et les pages tournent |
+| `EXAMEN_ADRESSE`, `EXAMEN_CODE`, `EXAMEN_MOT_DE_PASSE` | Compte d'examen Google Play, les trois ensemble ou aucun (code à 6 chiffres, mot de passe ≥ 32 caractères) |
 | `DOCUMENTATION_URL` | Page publique citée par les consignes |
 
 ## Vérification
