@@ -10,9 +10,17 @@
  *   l'app n'en a pas le droit (grant par colonne).
  * - Sous la RLS, un `DELETE` refusé n'est pas une erreur mais zéro ligne :
  *   on relit ce qui a été supprimé, comme `groupStore.deleteGroup`.
+ * - **L'assistant ouvert ou fermé se lit en ligne**, pas au build : le service
+ *   ne publie sa ressource protégée (RFC 9728) qu'avec `OAUTH_ACTIF=true`, et
+ *   répond 404 sinon. Ouvrir l'assistant ne demande donc aucune mise à jour de
+ *   l'app ; tant qu'il est fermé, l'écran ne propose pas une adresse morte.
+ *   Une sonde qui échoue (hors ligne, délai) vaut « fermé ».
  *
- *   const { acces, charger, revoquer } = useAccesAssistant()
+ *   const { acces, ouvert, charger, sonder, revoquer } = useAccesAssistant()
  */
+
+/** Au-delà, la sonde abandonne : l'écran du compte ne doit pas attendre. */
+const DELAI_SONDE_MS = 5000
 
 export interface AccesAssistant {
   id: string
@@ -60,5 +68,21 @@ export function useAccesAssistant() {
     acces.value = acces.value.filter(a => a.id !== id)
   }
 
-  return { acces, charge, charger, revoquer }
+  const ouvert = ref(false)
+
+  /** `origine` : celle de l'API (`origineApi`) ; vide, l'assistant reste fermé. */
+  async function sonder(origine: string): Promise<void> {
+    if (!origine) return
+    try {
+      const reponse = await fetch(`${origine}/.well-known/oauth-protected-resource/mcp`, {
+        signal: AbortSignal.timeout(DELAI_SONDE_MS),
+      })
+      ouvert.value = reponse.ok
+    }
+    catch {
+      ouvert.value = false
+    }
+  }
+
+  return { acces, charge, ouvert, charger, sonder, revoquer }
 }

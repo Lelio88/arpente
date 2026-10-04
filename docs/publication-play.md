@@ -19,10 +19,11 @@ Google l'exige ; les suivantes passent par l'API, avec `scripts/publish_play.py`
 | Signature | câblée sur `android/keystore.properties`, clé dans `.arpente-secrets/` |
 | AAB | `android/app/build/outputs/bundle/release/app-release.aab` (~21 Mo) |
 | Politique de confidentialité | <https://arpente.heianenterprise.com/privacy.html> |
+| Suppression du compte (web) | <https://api.arpente.heianenterprise.com/suppression-compte> |
 | Icône 512 | `public/icons/icon-512.png` |
 | Bannière 1024×500 | `assets/branding/feature-graphic.png` |
 | Captures | `assets/branding/screenshots/{telephone,tablette-7,tablette-10}/` |
-| Compte de test | **aucun** — l'app n'a pas de connexion |
+| Compte de test | **aucun** — l'examinateur se connecte avec son propre compte Google (§4) |
 
 Reconstruire l'AAB après toute modification :
 `npm run generate && npx cap sync android && cd android && ./gradlew bundleRelease`.
@@ -67,9 +68,14 @@ l'edit : le `versionCode` n'est pas consommé. Dépend de `google-auth` et `requ
 
 ## 4. Informations de connexion (*App access*)
 
-**Non**, aucune partie de l'application n'est limitée. Pas de compte, pas de paywall, pas
-de code d'accès. L'authentification anonyme de Supabase n'est **pas** une connexion :
-l'utilisateur ne saisit aucun identifiant. Aucun compte de test à fournir.
+**Certaines fonctionnalités sont limitées** : la fonction Groupes demande un compte. La
+carte, les parcours et les fiches restent libres. Aucun identifiant à fournir — la
+connexion n'a pas de mot de passe, et le code par e-mail n'arriverait pas chez
+l'examinateur — mais une instruction, qui l'envoie vers Google :
+
+```
+La carte, les parcours et les fiches sont accessibles sans compte. Seul l'onglet « Groupes » demande une connexion : touchez « Continuer avec Google » et utilisez n'importe quel compte Google (aucune invitation n'est nécessaire). La connexion par e-mail envoie un code à 6 chiffres à l'adresse saisie. Une fois connecté, créez un groupe : son code d'invitation permet à un second appareil de le rejoindre.
+```
 
 ---
 
@@ -141,30 +147,40 @@ que les comptes supervisés par Family Link.
 seulement.
 
 - Chiffrées en transit ? → **Oui** (HTTPS de bout en bout).
-- Méthode de création de compte → **« ne permet pas de créer un compte »** (identité
-  anonyme, sans identifiant ni mot de passe).
-- Sous-question qui suit : *« Les utilisateurs peuvent-ils se connecter avec des comptes
-  créés en dehors de l'appli ? »* → **Non**. Ni Google Sign-In, ni SSO, ni OAuth.
-- Moyen de demander la suppression des données (facultatif) → **Oui** : dans l'app
-  (*Groupes → Tes données → Supprimer mes données*), ou par courriel à
-  `heianenterpriseyt@gmail.com`. URL : <https://arpente.heianenterprise.com/privacy.html#suppression>.
-  **Pas** la troisième option (« supprimées automatiquement sous 90 jours ») : la purge
-  existe, mais à 6 mois d'inactivité pour un groupe, pas à 90 jours.
+- Méthodes de création de compte → **« Nom d'utilisateur et autre méthode
+  d'authentification »** (adresse e-mail et code à usage unique, sans mot de passe) **et**
+  **« OAuth »** (Google).
+- *« Les utilisateurs peuvent-ils se connecter avec des comptes créés en dehors de
+  l'appli ? »* → **Oui** (compte Google).
+- **URL de suppression du compte** (obligatoire dès qu'on crée des comptes) →
+  <https://api.arpente.heianenterprise.com/suppression-compte> : connexion par code ou
+  Google, puis confirmation. Dans l'app : *Groupes → Mon compte → Supprimer mon compte*.
+- Suppression d'une partie des données sans supprimer le compte (facultatif) → **Non**.
+- **Pas** l'option « supprimées automatiquement sous 90 jours » : les purges existent,
+  mais à 6 mois pour un groupe et 1 an pour un compte inactif.
 - Cette section s'envoie aussi par l'API (`applications.dataSafety`, CSV du modèle de
   Google) : les réponses ci-dessous en sont la source.
 
-| Donnée | Collectée | Partagée | Éphémère | Requise ? | Finalité |
+| Donnée | Collectée | Partagée | Éphémère | Requise ? | Finalités |
 |---|---|---|---|---|---|
 | **Position exacte** | ✔ | **✔** | Non | Facultative | Fonctionnement de l'appli |
-| **Nom** (pseudonyme) | ✔ | ✗ | Non | Facultative | Fonctionnement de l'appli |
-| **ID utilisateur** | ✔ | ✗ | Non | Facultative | Fonctionnement de l'appli |
+| **Adresse e-mail** | ✔ | ✗ | Non | Facultative | Fonctionnement de l'appli · Gestion du compte |
+| **Nom** (pseudonyme ; nom transmis par Google) | ✔ | ✗ | Non | Facultative | Fonctionnement de l'appli · Gestion du compte |
+| **ID utilisateur** | ✔ | ✗ | Non | Facultative | Fonctionnement de l'appli · Gestion du compte |
 | **Autre contenu généré par l'utilisateur** | ✔ | ✗ | Non | Facultative | Fonctionnement de l'appli |
 
 **« Partagée » n'est coché que pour la position**, et c'est le piège de cette section. Le
 calcul d'itinéraire envoie départ et arrivée à **OSRM**, une organisation extérieure :
-c'est un partage. Le pseudonyme, lui, est visible des autres membres du groupe — mais des
-utilisateurs de la même app ne sont pas « un tiers », et le Supabase auto-hébergé est
-notre propre backend, pas un destinataire externe.
+c'est un partage. Ne sont **pas** des partages au sens de Google :
+- les autres membres d'un groupe, qui voient le pseudonyme — des utilisateurs de la même
+  app ne sont pas « un tiers », et le Supabase auto-hébergé est notre propre backend ;
+- **Brevo** (envoi du code) et **Cloudflare Turnstile** (anti-robot), prestataires qui
+  traitent pour notre compte ;
+- l'**assistant IA**, qui ne reçoit des données que sur un geste explicite de
+  l'utilisateur (l'accord), cas que Google exclut nommément du partage.
+
+Turnstile examine l'adresse IP et des signaux techniques du navigateur le temps du
+contrôle, sans identifiant d'appareil persistant : aucun type de la liste de Google.
 
 **Aucune n'est éphémère** : « éphémère » désigne une donnée gardée en mémoire le temps de
 répondre à une requête, jamais écrite. Tout ce qui est listé ici atterrit dans une table
@@ -172,9 +188,10 @@ Postgres (`profiles`, `poi_votes`, `visited_pois`, `groups`). La position affich
 carte, elle, *serait* éphémère — mais la même donnée partant chez OSRM, la réponse **Non**
 reste la juste.
 
-**Toutes facultatives** : elles n'existent que si l'utilisateur ouvre la fonction Groupes.
-Aucune finalité d'analyse, de personnalisation ni de publicité — seul « Fonctionnement de
-l'appli » est coché.
+**Toutes facultatives** : elles n'existent que si l'utilisateur ouvre la fonction Groupes,
+seule à demander un compte. Aucune finalité d'analyse, de personnalisation ni de
+publicité — seuls « Fonctionnement de l'appli » et, pour ce qui identifie le compte,
+« Gestion du compte » sont cochés.
 
 **Non collectées**, malgré ce qu'on pourrait croire : contacts, photos, fichiers, agenda
 (l'ajout d'un parcours passe par l'application d'agenda du système, qui écrit elle-même),
@@ -225,10 +242,10 @@ DES PARCOURS THÉMATIQUES
 Une douzaine d'itinéraires prêts à suivre — médiéval, architectural, gourmand, romantique, mémoire de la guerre — avec distance, durée et étapes numérotées.
 
 À PLUSIEURS, SI VOUS VOULEZ
-Créez un groupe, partagez son code, votez pour les lieux qui vous tentent : l'application compose l'itinéraire qui met tout le monde d'accord, et chacun suit l'avancée du groupe.
+Connectez-vous avec un code reçu par e-mail ou avec Google, créez un groupe, partagez son code, votez pour les lieux qui vous tentent : l'application compose l'itinéraire qui met tout le monde d'accord, et chacun suit l'avancée du groupe.
 
 RESPECTUEUX PAR CONSTRUCTION
-Pas de compte à créer, pas de publicité, pas de traceur. Votre position ne quitte pas votre téléphone, sauf pour calculer un itinéraire à pied.
+Pas de compte pour visiter, pas de publicité, pas de traceur. Votre position ne quitte pas votre téléphone, sauf pour calculer un itinéraire à pied. Votre adresse e-mail n'est montrée à personne, pas même aux membres de vos groupes.
 
 Cartographie OpenStreetMap. Photographies Wikimedia Commons, auteurs crédités dans l'application.
 ```

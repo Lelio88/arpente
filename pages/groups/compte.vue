@@ -13,9 +13,10 @@ import { LIENS_LEGAUX, origineApi } from '~/utils/liensLegaux'
 const authStore = useAuthStore()
 const groupStore = useGroupStore()
 const config = useRuntimeConfig()
-const { acces, charge, charger, revoquer } = useAccesAssistant()
+const { acces, charge, ouvert: assistantOuvert, charger, sonder, revoquer } = useAccesAssistant()
 
-const adresseAssistant = `${origineApi(String(config.public.supabaseUrl))}/mcp`
+const origine = origineApi(String(config.public.supabaseUrl))
+const adresseAssistant = `${origine}/mcp`
 const erreurSession = ref<string | null>(null)
 const erreurAcces = ref<string | null>(null)
 const annonce = ref('')
@@ -38,6 +39,7 @@ async function chargerAcces() {
 }
 
 onMounted(async () => {
+  void sonder(origine)
   try {
     if (!authStore.isReady) await authStore.ensureSession()
     if (authStore.estConnecte) await chargerAcces()
@@ -111,7 +113,8 @@ async function supprimerLeCompte() {
         <button type="button" class="bouton" @click="seDeconnecter">Se déconnecter de ce téléphone</button>
       </section>
 
-      <section class="compte-section" aria-labelledby="titre-assistant">
+      <!-- Fermé et sans accès à révoquer : rien à montrer (useAccesAssistant). -->
+      <section v-if="assistantOuvert || acces.length > 0" class="compte-section" aria-labelledby="titre-assistant">
         <h2 id="titre-assistant">Assistant IA</h2>
         <p>
           Un assistant IA (Claude, ChatGPT…) peut t'aider à préparer une visite : lire les lieux, tes groupes,
