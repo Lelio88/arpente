@@ -24,7 +24,10 @@ TARGET=${1:?usage : deploy-service.sh <utilisateur@serveur>}
 HERE=$(cd "$(dirname "$0")" && pwd)
 RACINE=$(dirname "$HERE")
 
-if [ -n "$(git -C "$RACINE" status --porcelain)" ]; then
+# Affectation d'abord : un échec de git arrête le script (set -e), alors qu'à
+# l'intérieur du test il passerait pour « arbre propre ».
+ETAT=$(git -C "$RACINE" status --porcelain)
+if [ -n "$ETAT" ]; then
     echo "ERREUR : arbre de travail modifié — committer avant de mettre en ligne."
     exit 1
 fi
