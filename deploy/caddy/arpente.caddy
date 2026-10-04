@@ -161,14 +161,6 @@ api.arpente.heianenterprise.com {
 			method POST
 			path /auth/v1/logout
 		}
-		# TRANSITION — la connexion anonyme de l'app alpha (signInAnonymously)
-		# passe par /signup. Retirer ce bloc à la bascule, avec
-		# GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED=false et la migration
-		# 20261006_comptes_obligatoires.sql.
-		@transition_anonyme {
-			method POST
-			path /auth/v1/signup
-		}
 		handle @jeton {
 			uri strip_prefix /auth/v1
 			# Un seul Content-Type, JSON : avec deux en-têtes (formulaire puis
@@ -182,10 +174,6 @@ api.arpente.heianenterprise.com {
 			reverse_proxy 127.0.0.1:9999
 		}
 		handle @deconnexion {
-			uri strip_prefix /auth/v1
-			reverse_proxy 127.0.0.1:9999
-		}
-		handle @transition_anonyme {
 			uri strip_prefix /auth/v1
 			reverse_proxy 127.0.0.1:9999
 		}

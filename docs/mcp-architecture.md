@@ -130,7 +130,6 @@ Quatre interrupteurs du `.env` du serveur ouvrent les étapes, **dans cet ordre*
 - **Connexion bloquée par une rafale d'envois avant la bascule** : GoTrue plafonne les e-mails pour toute l'instance (30 par heure). Tant que le CAPTCHA n'est pas allumé, des envois depuis de nombreuses IP peuvent l'épuiser ; le plafond par IP de la passerelle n'arrête qu'une source. Le CAPTCHA, allumé à la bascule, ferme cette voie.
 - **Une reprise de rafraîchissement après une réponse perdue retire l'accès** : la rotation ne garde aucune tolérance pour la génération précédente — l'assistant doit être reconnecté. Sûr, mais rude ; c'est le choix de Lumis.
 - **Hameçonnage du consentement** : l'inscription étant ouverte, un tiers peut envoyer un lien d'accord ; la case à cocher, l'heure de la demande, la mise en garde, la durée de 10 minutes et l'adresse vérifiée de l'assistant le rendent visible, sans le rendre impossible.
-- **`/signup` reste ouvert pendant la transition** (connexion anonyme de l'app alpha), hors passerelle : à fermer à la bascule, avec `ANONYME_ACTIF=false`.
 
 ## Anti-patterns
 
