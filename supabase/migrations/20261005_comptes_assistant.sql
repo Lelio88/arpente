@@ -24,6 +24,20 @@
 --    set true » n'existe qu'à partir de la 16.)
 -- 4. Purge : inscriptions jamais confirmées (24 h), comptes sans groupe ni
 --    activité depuis un an, accès d'assistant expirés.
+-- 5. Les slugs de lieux n'acceptent qu'une forme de slug : un membre écrit
+--    ces colonnes par PostgREST, et un texte libre (« ignore tes règles… »)
+--    y atteindrait l'assistant d'un coéquipier. Toutes les lignes en service
+--    respectent déjà cette forme (vérifié avant la migration).
+
+-- ── 0. Forme des slugs ───────────────────────────────────────────────────
+alter table poi_votes add constraint poi_votes_slug_forme
+  check (poi_slug ~ '^[a-z0-9-]{1,80}$');
+alter table visited_pois add constraint visited_pois_slug_forme
+  check (poi_slug ~ '^[a-z0-9-]{1,80}$');
+alter table decided_routes add constraint decided_routes_slugs_forme
+  check (cardinality(poi_slugs) between 1 and 30
+         and array_position(poi_slugs, null) is null
+         and array_to_string(poi_slugs, ',') ~ '^[a-z0-9-]{1,80}(,[a-z0-9-]{1,80})*$');
 
 -- ── 1. Compte requis ─────────────────────────────────────────────────────
 create or replace function compte_requis() returns boolean

@@ -38,6 +38,12 @@
 					ipv4 24
 					ipv6 32
 				}
+				# La demande d'autorisation signée voyage dans l'adresse de la
+				# page d'accord : inutile sans session, elle n'a pas à dormir
+				# 30 jours dans un journal.
+				request>uri query {
+					delete demande
+				}
 			}
 		}
 	}
@@ -57,7 +63,7 @@ api.arpente.heianenterprise.com {
 		header {
 			Access-Control-Allow-Origin "*"
 			Access-Control-Allow-Methods "GET, POST, PATCH, PUT, DELETE, OPTIONS"
-			Access-Control-Allow-Headers "accept, accept-profile, apikey, authorization, content-type, content-profile, prefer, range, x-client-info, x-supabase-api-version"
+			Access-Control-Allow-Headers "accept, accept-profile, apikey, authorization, content-type, content-profile, prefer, range, x-client-info, x-supabase-api-version, mcp-protocol-version, mcp-session-id, last-event-id"
 			Access-Control-Max-Age "86400"
 		}
 		respond 204
@@ -165,6 +171,10 @@ api.arpente.heianenterprise.com {
 		}
 		handle @jeton {
 			uri strip_prefix /auth/v1
+			# Un seul Content-Type, JSON : avec deux en-têtes (formulaire puis
+			# JSON), le matcher en verrait un JSON et Go lirait le premier — et
+			# un grant_type caché dans le corps lu comme formulaire.
+			request_header Content-Type application/json
 			reverse_proxy 127.0.0.1:9999
 		}
 		handle @lecture {

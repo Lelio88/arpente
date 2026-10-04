@@ -29,7 +29,7 @@ async function decider(decision, connexion) {
   if (!reponse?.ok || typeof corps.redirection !== 'string') {
     annoncer(corps.erreur ?? 'La réponse n\'a pas pu être enregistrée. Réessaie.')
     boutonRefuser.disabled = false
-    if (boutonAutoriser) boutonAutoriser.disabled = false
+    if (boutonAutoriser) boutonAutoriser.disabled = !document.getElementById('moi-meme')?.checked
     return
   }
   await connexion?.deconnecter()
@@ -46,6 +46,10 @@ if (document.getElementById('connexion')) {
       boutonAutoriser.focus()
     },
   })
-  boutonAutoriser.addEventListener('click', () => { void decider('autoriser', connexion) })
+  // Autoriser reste grisé tant que la personne n'a pas affirmé avoir lancé la
+  // connexion elle-même : un lien d'accord reçu d'un tiers est un hameçon.
+  const moiMeme = document.getElementById('moi-meme')
+  moiMeme.addEventListener('change', () => { boutonAutoriser.disabled = !moiMeme.checked })
+  boutonAutoriser.addEventListener('click', () => { if (moiMeme.checked) void decider('autoriser', connexion) })
   boutonRefuser.addEventListener('click', () => { void decider('refuser', connexion) })
 }

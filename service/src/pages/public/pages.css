@@ -105,6 +105,12 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .erreur { color: var(--erreur); margin: 0.35rem 0 0; }
 .erreur-bloc { color: var(--erreur); font-weight: 600; }
+.alerte {
+  border-left: 3px solid var(--erreur);
+  padding: 0.5rem 0.75rem;
+  background: var(--surface);
+  border-radius: 0 0.5rem 0.5rem 0;
+}
 .aide { color: var(--doux); font-size: 0.92rem; margin: 0.35rem 0 0; }
 .etat { min-height: 1.5rem; margin-top: 1rem; }
 .ou { color: var(--doux); text-align: center; margin: 1rem 0 0; }

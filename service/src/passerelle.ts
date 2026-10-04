@@ -14,13 +14,20 @@
  *   adresse mal formée, limite par adresse IP), rendues aussitôt.
  * - **Limiter les essais par adresse e-mail.** GoTrue ne compte que par
  *   adresse IP : rien n'empêche des milliers d'essais répartis sur un même
- *   code à 6 chiffres. Après 5 échecs pour une adresse, 15 minutes de pause.
+ *   code à 6 chiffres. Pause de 15 minutes après 5 échecs pour une adresse
+ *   depuis une même IP (un tiers qui se trompe exprès ne bloque que lui), ou
+ *   20 toutes IP confondues ; l'essai est compté avant d'être relayé.
  *
  * Choix non évidents :
  * - au-delà du délai, la réponse part sans attendre GoTrue, dont la requête
  *   continue détachée : le titulaire reçoit son code même si l'envoi SMTP est
- *   lent. Ces envois détachés sont plafonnés (`MAX_EN_COURS`) : au-delà, la
- *   réponse reste la même mais rien n'est relayé ;
+ *   lent. Ces envois détachés sont plafonnés (`MAX_EN_COURS`) : au-delà, 503,
+ *   une réponse qui ne dépend que de la charge ;
+ * - plafonds par IP sur les envois et les vérifications ; ils ne dépendent
+ *   pas de l'adresse, donc ne disent rien d'un compte ;
+ * - l'adresse est mise en minuscules et n'admet que l'ASCII, sans guillemets
+ *   ni chevrons : la clé des compteurs et ce que reçoit GoTrue sont la même
+ *   chaîne, et une variante d'écriture n'ouvre pas un compteur neuf ;
  * - les adresses ne sont gardées en mémoire que sous forme d'empreinte ;
  * - `X-Forwarded-For`, posé par Caddy, est relayé tel quel : GoTrue limite par
  *   client d'après lui (`GOTRUE_RATE_LIMIT_HEADER`).
@@ -36,9 +43,20 @@ export const DELAI_ENVOI_MS = 1_500
 export const PLANCHER_VERIFICATION_MS = 300
 const MAX_EN_COURS = 32
 const DELAI_GOTRUE_MS = 30_000
-const MAX_ECHECS = 5
 const PAUSE_ECHECS_MS = 15 * 60 * 1000
-const ADRESSE = /^[^\s@]{1,64}@[^\s@]{1,255}$/
+/** Échecs tolérés pour une adresse depuis une même IP : au-delà, pause. */
+export const MAX_ECHECS_ADRESSE_IP = 5
+/** Échecs tolérés pour une adresse toutes IP confondues : le frein d'un essai réparti. */
+export const MAX_ECHECS_ADRESSE = 20
+/** Par adresse IP, sur 10 minutes : envois de code, vérifications. */
+export const ENVOIS_PAR_IP = 10
+export const VERIFICATIONS_PAR_IP = 30
+const FENETRE_IP_MS = 10 * 60 * 1000
+// ASCII seulement, sans guillemets ni chevrons : une variante d'écriture que
+// GoTrue ramènerait à la même adresse (« <a@b.c> », « "a"@b.c », un İ turc
+// que Go et JavaScript ne mettent pas en minuscule de la même façon) aurait
+// sinon son propre compteur d'échecs.
+const ADRESSE = /^[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}(\.[A-Za-z0-9-]{1,63})+$/
 const CODE = /^\d{6}$/
 
 /** Erreurs de `/otp` qui ne dépendent que de la saisie : rendues telles quelles. */
@@ -58,8 +76,15 @@ function securite(corps: Record<string, unknown>): { captcha_token?: string } {
   return typeof s?.captcha_token === 'string' ? { captcha_token: s.captcha_token.slice(0, 4096) } : {}
 }
 
-function empreinte(adresse: string): string {
-  return createHash('sha256').update(adresse.trim().toLowerCase()).digest('hex')
+/** L'adresse telle qu'elle part à GoTrue et sert de clé : sans blancs, en minuscules. */
+function adresseNormalisee(valeur: unknown): string | null {
+  if (typeof valeur !== 'string') return null
+  const adresse = valeur.trim().toLowerCase()
+  return adresse.length <= 254 && ADRESSE.test(adresse) ? adresse : null
+}
+
+function empreinte(valeur: string): string {
+  return createHash('sha256').update(valeur).digest('hex')
 }
 
 function codeErreur(corps: string): string {
@@ -83,8 +108,16 @@ function erreurGotrue(statut: number, code: string, message: string): string {
   return JSON.stringify({ code: statut, error_code: code, msg: message })
 }
 
+const TROP_D_ESSAIS = erreurGotrue(429, 'over_request_rate_limit', 'Trop d\'essais : réessaie dans quelques minutes.')
+
 export function routeurPasserelle(urlGotrue: string, maintenant: () => number = () => Date.now()): Router {
-  const echecs = new Fenetre(MAX_ECHECS, PAUSE_ECHECS_MS)
+  // Deux compteurs d'échecs : par adresse ET par IP (un tiers qui se trompe
+  // exprès ne bloque que lui-même), et par adresse seule, plus haut (le frein
+  // d'un essai réparti sur de nombreuses IP).
+  const echecsAdresseIp = new Fenetre(MAX_ECHECS_ADRESSE_IP, PAUSE_ECHECS_MS)
+  const echecsAdresse = new Fenetre(MAX_ECHECS_ADRESSE, PAUSE_ECHECS_MS)
+  const envoisIp = new Fenetre(ENVOIS_PAR_IP, FENETRE_IP_MS)
+  const verificationsIp = new Fenetre(VERIFICATIONS_PAR_IP, FENETRE_IP_MS)
   let enCours = 0
 
   async function relayer(req: Request, chemin: string, corps: Record<string, unknown>): Promise<RelaiGotrue> {
@@ -105,19 +138,25 @@ export function routeurPasserelle(urlGotrue: string, maintenant: () => number = 
   async function envoyerCode(req: Request, res: Response): Promise<void> {
     const debut = maintenant()
     const corps = (req.body ?? {}) as Record<string, unknown>
-    const adresse = typeof corps.email === 'string' ? corps.email : ''
-    if (!ADRESSE.test(adresse) || 'phone' in corps) {
+    const adresse = adresseNormalisee(corps.email)
+    if (!adresse || 'phone' in corps) {
       repondre(res, 400, erreurGotrue(400, 'validation_failed', 'Adresse e-mail invalide.'), null)
       return
     }
     const version = req.get('x-supabase-api-version') ?? null
+    // Refus qui ne dépendent que de l'IP ou de la charge, jamais de l'adresse :
+    // ils ne disent rien d'un compte.
+    if (!envoisIp.autorise(req.ip ?? 'inconnue', maintenant())) {
+      repondre(res, 429, TROP_D_ESSAIS, version)
+      return
+    }
+    if (enCours >= MAX_EN_COURS) {
+      repondre(res, 503, erreurGotrue(503, 'service_busy', 'Service momentanément chargé : réessaie dans un instant.'), version)
+      return
+    }
     const reponseUniforme = async (): Promise<void> => {
       await attendre(Math.max(0, debut + DELAI_ENVOI_MS - maintenant()))
       repondre(res, 200, '{}', version)
-    }
-    if (enCours >= MAX_EN_COURS) {
-      await reponseUniforme()
-      return
     }
     enCours++
     // Corps reconstruit : create_user forcé (sinon GoTrue répond autrement à
@@ -139,23 +178,35 @@ export function routeurPasserelle(urlGotrue: string, maintenant: () => number = 
   async function verifierCode(req: Request, res: Response): Promise<void> {
     const debut = maintenant()
     const corps = (req.body ?? {}) as Record<string, unknown>
-    const adresse = typeof corps.email === 'string' ? corps.email : ''
+    const adresse = adresseNormalisee(corps.email)
     const version = req.get('x-supabase-api-version') ?? null
     // Seul le code reçu par e-mail passe : ni lien, ni token_hash, ni téléphone.
-    if (corps.type !== 'email' || !ADRESSE.test(adresse) || typeof corps.token !== 'string' || !CODE.test(corps.token)
+    if (corps.type !== 'email' || !adresse || typeof corps.token !== 'string' || !CODE.test(corps.token)
       || 'token_hash' in corps || 'phone' in corps) {
       repondre(res, 400, erreurGotrue(400, 'validation_failed', 'Code à 6 chiffres attendu.'), null)
       return
     }
-    const cle = empreinte(adresse)
-    if (echecs.compte(cle, maintenant()) >= MAX_ECHECS) {
-      repondre(res, 429, erreurGotrue(429, 'over_request_rate_limit',
-        'Trop d\'essais pour cette adresse : réessaie dans quelques minutes.'), version)
+    const ip = req.ip ?? 'inconnue'
+    if (!verificationsIp.autorise(ip, maintenant())) {
+      repondre(res, 429, TROP_D_ESSAIS, version)
       return
     }
+    const cleAdresse = empreinte(adresse)
+    const cleAdresseIp = empreinte(`${adresse}|${ip}`)
+    if (echecsAdresseIp.compte(cleAdresseIp, maintenant()) >= MAX_ECHECS_ADRESSE_IP
+      || echecsAdresse.compte(cleAdresse, maintenant()) >= MAX_ECHECS_ADRESSE) {
+      repondre(res, 429, TROP_D_ESSAIS, version)
+      return
+    }
+    // L'essai est compté AVANT d'être relayé : des requêtes parallèles ne
+    // passent pas toutes sous le plafond. Un succès efface le compte.
+    echecsAdresseIp.ajoute(cleAdresseIp, maintenant())
+    echecsAdresse.ajoute(cleAdresse, maintenant())
     const r = await relayer(req, '/verify', { type: 'email', email: adresse, token: corps.token })
-    if (r.statut >= 200 && r.statut < 300) echecs.oublie(cle)
-    else if (r.statut !== 429) echecs.ajoute(cle, maintenant())
+    if (r.statut >= 200 && r.statut < 300) {
+      echecsAdresseIp.oublie(cleAdresseIp)
+      echecsAdresse.oublie(cleAdresse)
+    }
     await attendre(Math.max(0, debut + PLANCHER_VERIFICATION_MS - maintenant()))
     repondre(res, r.statut, r.corps, r.version)
   }

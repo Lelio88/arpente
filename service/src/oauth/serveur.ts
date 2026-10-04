@@ -74,7 +74,7 @@ export interface DependancesOAuth {
   autorisations: DepotAutorisations
   juge: JugeJeton
   /** Rend la page d'accord ; reçoit des textes déjà vérifiés. */
-  pageAccord: (vue: { assistant: string, client: string } | { erreur: string }) => string
+  pageAccord: (vue: { assistant: string, client: string, demandeeLe: Date } | { erreur: string }) => string
   maintenant?: () => number
 }
 
@@ -127,7 +127,12 @@ export function routeurOAuth(d: DependancesOAuth): Router {
   }
 
   function ressourceAdmise(valeur: string): boolean {
-    const v = valeur.replace(/\/+$/, '')
+    if (valeur.length > BORNES.longueurUri) return false
+    // Barres finales retirées à la main : une expression « /+$ » serait
+    // quadratique sur une valeur faite de milliers de barres.
+    let fin = valeur.length
+    while (fin > 0 && valeur[fin - 1] === '/') fin--
+    const v = valeur.slice(0, fin)
     return v === '' || v === ressource || v === emetteur
   }
 
@@ -243,7 +248,7 @@ export function routeurOAuth(d: DependancesOAuth): Router {
   async function afficherAccord(req: Request, res: Response): Promise<void> {
     const dm = await demande(chaine(req.query.demande))
     const html = dm
-      ? d.pageAccord({ assistant: dm.assistant, client: dm.c.nom })
+      ? d.pageAccord({ assistant: dm.assistant, client: dm.c.nom, demandeeLe: new Date((dm.r.iat ?? 0) * 1000) })
       : d.pageAccord({ erreur: 'Cette demande a expiré ou n\'est pas valable : relance la connexion depuis ton assistant.' })
     res.status(dm ? 200 : 400).type('html').set('Cache-Control', 'no-store').send(html)
   }
@@ -346,7 +351,7 @@ export function routeurOAuth(d: DependancesOAuth): Router {
   }
 
   async function echangerCode(req: Request, res: Response, c: Client): Promise<void> {
-    const f = req.body as Record<string, unknown>
+    const f = (req.body ?? {}) as Record<string, unknown>
     const code = codes.prendre(chaine(f.code))
     const cle = empreinteClient(c.id)
     const retourDonne = chaine(f.redirect_uri)
@@ -362,7 +367,7 @@ export function routeurOAuth(d: DependancesOAuth): Router {
   }
 
   async function echangerRafraichissement(req: Request, res: Response, c: Client): Promise<void> {
-    const f = req.body as Record<string, unknown>
+    const f = (req.body ?? {}) as Record<string, unknown>
     const r = await d.signataire.verifier(chaine(f.refresh_token), 'rafraichissement')
     const cle = empreinteClient(c.id)
     if (!r?.sub || r.cid !== cle || typeof r.gen !== 'number') {
@@ -391,7 +396,7 @@ export function routeurOAuth(d: DependancesOAuth): Router {
       erreurOAuth(res, 401, 'invalid_client', 'Assistant non authentifié.')
       return
     }
-    const type = chaine((req.body as Record<string, unknown>).grant_type)
+    const type = chaine(((req.body ?? {}) as Record<string, unknown>).grant_type)
     if (type === 'authorization_code') return echangerCode(req, res, c)
     if (type === 'refresh_token') return echangerRafraichissement(req, res, c)
     erreurOAuth(res, 400, 'unsupported_grant_type', 'authorization_code ou refresh_token.')
@@ -404,7 +409,7 @@ export function routeurOAuth(d: DependancesOAuth): Router {
       erreurOAuth(res, 401, 'invalid_client', 'Assistant non authentifié.')
       return
     }
-    const brut = chaine((req.body as Record<string, unknown>).token)
+    const brut = chaine(((req.body ?? {}) as Record<string, unknown>).token)
     const r = await d.signataire.verifier(brut, 'rafraichissement')
       ?? await d.signataire.verifier(brut, 'acces', ressource)
     if (r?.sub && r.cid === empreinteClient(c.id)) await d.autorisations.supprimer(r.sub)

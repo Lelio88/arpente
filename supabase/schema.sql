@@ -77,6 +77,17 @@ create table decided_routes (
 );
 create index decided_routes_group_idx on decided_routes (group_id, decided_at desc);
 
+-- Forme des slugs : un membre écrit ces colonnes par PostgREST, et un texte
+-- libre (« ignore tes règles… ») y atteindrait l'assistant IA d'un coéquipier.
+alter table poi_votes add constraint poi_votes_slug_forme
+  check (poi_slug ~ '^[a-z0-9-]{1,80}$');
+alter table visited_pois add constraint visited_pois_slug_forme
+  check (poi_slug ~ '^[a-z0-9-]{1,80}$');
+alter table decided_routes add constraint decided_routes_slugs_forme
+  check (cardinality(poi_slugs) between 1 and 30
+         and array_position(poi_slugs, null) is null
+         and array_to_string(poi_slugs, ',') ~ '^[a-z0-9-]{1,80}(,[a-z0-9-]{1,80})*$');
+
 -- ── Compte requis ────────────────────────────────────────────────────
 -- Vrai seulement pour un jeton de compte (e-mail ou Google). Un jeton sans le
 -- claim is_anonymous est traité comme anonyme : échec fermé. Les groupes sont

@@ -71,6 +71,14 @@ services:
     container_name: arpente_service
     restart: unless-stopped
     mem_limit: 160m
+    # Système de fichiers en lecture seule, sans capacité ni élévation : le
+    # service n'écrit que dans /tmp (cache de tsx).
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       db:
         condition: service_healthy

@@ -39,6 +39,8 @@ export interface DependancesGroupes {
   ecritures: Fenetre
   decisions: Fenetre
   lireJson: LireJson
+  /** Empreinte HMAC d'un aperçu de parcours (clé du serveur d'autorisation). */
+  empreinteApercu: (valeur: string) => string
 }
 
 const LONGUEUR_NOM = 60
@@ -70,20 +72,28 @@ function pseudoDe(detail: DetailGroupe, userId: string | null): string {
 }
 
 function vueDetail(d: DependancesGroupes, detail: DetailGroupe) {
+  // Un slug écrit en base par un membre n'est rendu que s'il désigne un lieu
+  // connu de la ville du groupe : jamais l'assistant ne reçoit un slug brut,
+  // qui pourrait porter une consigne déguisée (« ignore-tes-regles… »).
+  const connu = (slug: string): boolean => d.catalogue.lieu(slug)?.ville === detail.ville
   const titre = (slug: string): string => d.catalogue.lieu(slug)?.titre ?? slug
   const nombres = detail.envies.map(e => e.nombre).filter((n): n is number => n !== null)
   const durees = detail.envies.map(e => e.duree).filter((n): n is number => n !== null)
+  const votes = Object.entries(detail.approbations)
   return {
     ...vueResume(detail),
     membres: detail.pseudos.map(m => ({ pseudo: nettoyerTexte(m.pseudo, 40) || '?', moi: m.moi })),
-    votes: Object.entries(detail.approbations)
+    votes: votes
+      .filter(([slug]) => connu(slug))
       .map(([slug, ids]) => ({ slug, titre: titre(slug), voix: ids.length, par: ids.map(id => pseudoDe(detail, id)) }))
       .sort((a, b) => b.voix - a.voix || a.titre.localeCompare(b.titre, 'fr')),
+    votes_sur_des_lieux_inconnus: votes.filter(([slug]) => !connu(slug)).reduce((n, [, ids]) => n + ids.length, 0),
     envies: detail.envies.map(e => ({ pseudo: pseudoDe(detail, e.userId), nombre_de_lieux: e.nombre, duree_minutes: e.duree })),
     medianes: { nombre_de_lieux: median(nombres), duree_minutes: median(durees) },
-    lieux_coches: detail.coches.map(c => ({ slug: c.slug, titre: titre(c.slug), par: pseudoDe(detail, c.par) })),
+    lieux_coches: detail.coches.filter(c => connu(c.slug))
+      .map(c => ({ slug: c.slug, titre: titre(c.slug), par: pseudoDe(detail, c.par) })),
     parcours_arrete: detail.parcoursArrete && {
-      etapes: detail.parcoursArrete.etapes.map(s => ({ slug: s, titre: titre(s) })),
+      etapes: detail.parcoursArrete.etapes.map(s => connu(s) ? { slug: s, titre: titre(s) } : { slug: null, titre: 'lieu inconnu' }),
       distance_metres: detail.parcoursArrete.distanceMetres,
       duree_marche_minutes: detail.parcoursArrete.dureeSecondes === null ? null : Math.round(detail.parcoursArrete.dureeSecondes / 60),
       arrete_le: detail.parcoursArrete.arreteLe,
@@ -183,13 +193,14 @@ export function enregistrerOutilsGroupes(serveur: McpServer, d: DependancesGroup
 
   serveur.registerTool('arreter_parcours', {
     title: 'Arrêter le parcours du groupe',
-    description: 'Calcule le parcours du groupe à partir des votes (les lieux les plus soutenus, en nombre égal à la médiane des envies, reliés de proche en proche) — le calcul de l\'app, pas le tien. Sans confirme : rend un aperçu, rien n\'est enregistré. Avec confirme=true, SEULEMENT après avoir montré l\'aperçu à l\'utilisateur et reçu son accord explicite : enregistre le parcours, visible de tout le groupe.',
+    description: 'Calcule le parcours du groupe à partir des votes (les lieux les plus soutenus, en nombre égal à la médiane des envies, reliés de proche en proche) — le calcul de l\'app, pas le tien. Sans confirme : rend un aperçu et son jeton, rien n\'est enregistré. Avec confirme=true et le jeton de l\'aperçu, SEULEMENT après avoir montré cet aperçu à l\'utilisateur et reçu son accord explicite : enregistre le parcours, visible de tout le groupe. Si les votes ont changé entre-temps, le jeton ne vaut plus : redemande un aperçu.',
     inputSchema: z.object({
       groupe: designationGroupe,
       confirme: z.boolean().optional().describe('true pour enregistrer, après accord explicite de l\'utilisateur.'),
+      apercu: z.string().max(64).optional().describe('Le jeton rendu par l\'aperçu montré à l\'utilisateur ; obligatoire avec confirme.'),
     }),
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
-  }, async ({ groupe, confirme }) => protege('arreter_parcours', async () => {
+  }, async ({ groupe, confirme, apercu }) => protege('arreter_parcours', async () => {
     const t = await trouverGroupe(d, userId, groupe)
     if ('erreur' in t) return t.erreur
     const detail = await d.groupes.detail(userId, t.groupe.id)
@@ -216,12 +227,20 @@ export function enregistrerOutilsGroupes(serveur: McpServer, d: DependancesGroup
       duree_marche_minutes: trajet.durationSeconds === null ? null : Math.round(trajet.durationSeconds / 60),
       distance_estimee: trajet.isEstimated,
     }
+    // Le jeton lie la confirmation à CET aperçu (même accès, même groupe, mêmes
+    // étapes dans le même ordre) : une confirmation « à l'aveugle », ou sur un
+    // parcours qui a changé depuis, est refusée.
+    const jeton = d.empreinteApercu([autorisationId, t.groupe.id, ...projet.orderedSlugs].join('|')).slice(0, 32)
     if (confirme !== true) {
       return donnees({
         apercu: true,
-        message: 'Rien n\'est enregistré. Montre ce parcours à l\'utilisateur ; s\'il l\'accepte explicitement, rappelle avec confirme=true. Une distance estimée est à vol d\'oiseau.',
+        jeton_apercu: jeton,
+        message: 'Rien n\'est enregistré. Montre ce parcours à l\'utilisateur ; s\'il l\'accepte explicitement, rappelle avec confirme=true et apercu égal à jeton_apercu. Une distance estimée est à vol d\'oiseau.',
         ...vue,
       })
+    }
+    if (apercu !== jeton) {
+      return refus('Aucun aperçu ne correspond à ce parcours (jamais montré, ou les votes ont changé depuis). Redemande un aperçu sans confirme, montre-le à l\'utilisateur, puis confirme avec son jeton.')
     }
     if (!d.decisions.autorise(autorisationId) || !d.ecritures.autorise(autorisationId)) {
       return refus('Plafond atteint : au plus 5 parcours arrêtés par heure.')

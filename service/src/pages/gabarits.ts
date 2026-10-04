@@ -116,13 +116,22 @@ ${google}
 </section>`
 }
 
-export function pageAccord(vue: { assistant: string, client: string } | { erreur: string }, cles: CleesPubliques): string {
+/** Heure d'une demande, à Paris : « 14 h 05 ». */
+function heure(date: Date): string {
+  return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' }).replace(':', ' h ')
+}
+
+export function pageAccord(
+  vue: { assistant: string, client: string, demandeeLe: Date } | { erreur: string },
+  cles: CleesPubliques,
+): string {
   if ('erreur' in vue) {
     return page('Demande expirée', `<h1>Autoriser un assistant IA</h1>
 <p class="erreur-bloc" role="alert">${echapper(vue.erreur)}</p>`, 'accord.js', cles)
   }
   return page('Autoriser un assistant IA', `<h1>Autoriser un assistant IA</h1>
-<p><strong>${echapper(vue.assistant)}</strong> demande à accéder à ton compte Arpente${vue.client ? ` (il se présente comme « ${echapper(vue.client)} »)` : ''}.</p>
+<p><strong>${echapper(vue.assistant)}</strong> demande à accéder à ton compte Arpente${vue.client ? ` (il se présente comme « ${echapper(vue.client)} »)` : ''}. Demande faite à ${echapper(heure(vue.demandeeLe))}.</p>
+<p class="alerte">Si tu n'as pas lancé toi-même cette connexion depuis ton assistant, à l'instant, ferme cette page : quelqu'un essaie peut-être d'obtenir l'accès à ton compte.</p>
 <h2>Il pourra</h2>
 <ul>
 <li>lire les lieux et les parcours de Caen et de Troyes ;</li>
@@ -135,7 +144,8 @@ ${blocConnexion(cles)}
 <section id="decision" aria-labelledby="titre-decision" hidden>
 <h2 id="titre-decision">Ta réponse</h2>
 <p>Compte connecté : <strong id="compte"></strong>.</p>
-<button type="button" id="autoriser">Autoriser</button>
+<p><input type="checkbox" id="moi-meme"> <label for="moi-meme">J'ai lancé cette connexion moi-même, à l'instant, depuis ${echapper(vue.assistant)}.</label></p>
+<button type="button" id="autoriser" disabled>Autoriser</button>
 </section>
 <button type="button" id="refuser" class="secondaire">Refuser</button>
 <p id="etat" class="etat" role="status" aria-live="polite"></p>`, 'accord.js', cles)

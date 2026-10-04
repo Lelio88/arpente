@@ -108,12 +108,24 @@ describe('autorisation', () => {
     assert.equal(new URL(a.headers.get('location')!).searchParams.get('error'), 'invalid_target')
   })
 
-  test('la page d\'accord nomme l\'assistant par son adresse vérifiée', async () => {
+  test('la page d\'accord nomme l\'assistant par son adresse vérifiée, et l\'heure de la demande', async () => {
     const { demande } = await clientEtDemande()
     const page = await fetch(`${banc.url}/oauth/accord?demande=${encodeURIComponent(demande)}`)
     assert.equal(page.status, 200)
-    assert.match(await page.text(), /Claude \(claude\.ai, Claude Desktop, mobile\)/)
+    const html = await page.text()
+    assert.match(html, /Claude \(claude\.ai, Claude Desktop, mobile\)/)
+    assert.match(html, /Demande faite à \d{2} h \d{2}/)
+    assert.match(html, /id="autoriser" disabled/, 'Autoriser grisé tant que la case n\'est pas cochée')
     assert.match(page.headers.get('content-security-policy') ?? '', /frame-ancestors 'none'/)
+  })
+
+  test('une ressource démesurée est refusée sans s\'y attarder', async () => {
+    const r = await inscrire({ redirect_uris: [RETOUR_CLAUDE], token_endpoint_auth_method: 'none' })
+    const { client_id: clientId } = await r.json() as { client_id: string }
+    const debut = Date.now()
+    const a = await demander(clientId, pkce().defi, { resource: '/'.repeat(4000) + 'x' })
+    assert.equal(new URL(a.headers.get('location')!).searchParams.get('error'), 'invalid_target')
+    assert.ok(Date.now() - debut < 1000)
   })
 })
 
@@ -174,6 +186,12 @@ describe('jetons', () => {
     assert.equal((await rejeu.json() as { error: string }).error, 'invalid_grant')
     assert.equal(banc.autorisations.lignes.has(a.autorisationId), false, 'le rejeu supprime l\'accès')
     assert.equal((await appelMcp(banc, nouveaux.access_token, 'tools/list')).statut, 401)
+  })
+
+  test('/oauth/token sans corps : refus net, pas une erreur interne', async () => {
+    const r = await fetch(`${banc.url}/oauth/token`, { method: 'POST' })
+    assert.equal(r.status, 401)
+    assert.equal((await r.json() as { error: string }).error, 'invalid_client')
   })
 
   test('un jeton de rafraîchissement ne sert pas d\'accès à /mcp', async () => {

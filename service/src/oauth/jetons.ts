@@ -93,7 +93,12 @@ export class Signataire {
 
   /** Secret d'un client confidentiel : dérivé, rien à stocker. */
   secretClient(clientId: string): string {
-    return createHmac('sha256', this.cle).update(`client-secret:${clientId}`).digest('hex')
+    return this.empreinte('client-secret', clientId)
+  }
+
+  /** Empreinte HMAC d'une valeur, séparée par usage (`etiquette`). */
+  empreinte(etiquette: string, valeur: string): string {
+    return createHmac('sha256', this.cle).update(`${etiquette}:${valeur}`).digest('hex')
   }
 }
 

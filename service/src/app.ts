@@ -124,6 +124,7 @@ function monterAssistant(app: express.Express, d: Dependances, cles: { turnstile
     ecritures: new Fenetre(30, 60 * 60 * 1000),
     decisions: new Fenetre(5, 60 * 60 * 1000),
     lireJson: d.lireJson,
+    empreinteApercu: (valeur: string) => signataire.empreinte('apercu', valeur),
   }
   const gestionnaire = createMcpHandler(
     ctx => creerServeurMcp(accesDe(ctx.authInfo), dependancesOutils, config.urlDocumentation),

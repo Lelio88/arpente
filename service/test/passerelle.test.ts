@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { after, before, describe, test } from 'node:test'
-import { DELAI_ENVOI_MS } from '../src/passerelle'
+import { DELAI_ENVOI_MS, ENVOIS_PAR_IP } from '../src/passerelle'
 import { monterBanc, type Banc } from './aides'
 
 let gotrue: Server
@@ -96,6 +96,21 @@ describe('envoi d\'un code', () => {
     assert.ok(r.duree < DELAI_ENVOI_MS)
   })
 
+  test('plafond par IP : le onzième envoi en dix minutes est refusé', async () => {
+    const banc2 = await monterBanc({ urlGotrue: `http://127.0.0.1:${(gotrue.address() as AddressInfo).port}` })
+    try {
+      const envoyer = () => fetch(`${banc2.url}/auth/v1/otp`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'ip@exemple.test', gotrue_meta_security: { captcha_token: 'mauvais' } }),
+      })
+      for (let i = 0; i < ENVOIS_PAR_IP; i++) assert.equal((await envoyer()).status, 400)
+      assert.equal((await envoyer()).status, 429)
+    }
+    finally {
+      await banc2.fermer()
+    }
+  })
+
   test('une adresse mal formée ou un téléphone : refus local', async () => {
     assert.equal((await otp({ email: 'pas-une-adresse' })).statut, 400)
     assert.equal((await otp({ email: 'a@b.c', phone: '+33600000000' })).statut, 400)
@@ -108,6 +123,18 @@ describe('vérification du code', () => {
     const bloque = await verifier('cible@exemple.test', '123456')
     assert.equal(bloque.statut, 429)
     assert.equal((await verifier('autre@exemple.test', '123456')).statut, 200, 'une autre adresse n\'est pas touchée')
+  })
+
+  test('une variante d\'écriture partage le compteur, ou est refusée', async () => {
+    assert.equal((await verifier('CIBLE@Exemple.Test', '123456')).statut, 429, 'majuscules : même adresse, même pause')
+    for (const variante of ['<cible@exemple.test>', '"cible"@exemple.test', 'cİble@exemple.test', 'cible@exemple']) {
+      assert.equal((await verifier(variante, '123456')).statut, 400, variante)
+    }
+  })
+
+  test('l\'adresse part à GoTrue en minuscules', async () => {
+    await verifier('Casse@Exemple.TEST', '000000')
+    assert.equal(recus.filter(r => r.chemin === '/verify').at(-1)!.corps.email, 'casse@exemple.test')
   })
 
   test('seul le code à 6 chiffres passe', async () => {
