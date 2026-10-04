@@ -85,17 +85,104 @@ api.arpente.heianenterprise.com {
 		# qui ne sert que du JSON n'a rien à charger ni à s'afficher dans un
 		# cadre : CSP fermée et frame-ancestors 'none' ne gênent aucun client.
 		# HSTS sans « preload » : le retirer resterait possible.
+		# « ? » : posés seulement si la réponse ne les porte pas déjà. Les pages
+		# du service (accord d'un assistant, suppression du compte, CAPTCHA)
+		# envoient leur propre CSP, leur anti-cadre et « strict-origin », dont
+		# le bouton Google a besoin ; ce bloc ne doit pas les écraser.
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
-		Referrer-Policy "no-referrer"
-		X-Frame-Options "DENY"
-		Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
+		?Referrer-Policy "no-referrer"
+		?X-Frame-Options "DENY"
+		?Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
 		-Server
 	}
 
+	# ── Le service d'Arpente (service/, port 3012) ─────────────────────────
+	# Assistant IA (découverte OAuth, /oauth/*, /mcp), pages d'accord, de
+	# suppression du compte et du CAPTCHA de l'app. Sans retrait de préfixe :
+	# le service répond sur ces chemins mêmes. flush_interval -1 : /mcp répond
+	# en flux SSE aux clients de 2025, à relayer sans tampon.
+	@service path /mcp /oauth/* /.well-known/oauth-authorization-server /.well-known/oauth-protected-resource /.well-known/oauth-protected-resource/* /suppression-compte /captcha /connexion/*
+	handle @service {
+		reverse_proxy 127.0.0.1:3012 {
+			flush_interval -1
+		}
+	}
+
+	# Gabarits des e-mails de GoTrue (code de connexion), lus par GoTrue à
+	# l'envoi. Servis ici, pas par un conteneur : si GoTrue ne les obtient pas,
+	# il retombe sans bruit sur son gabarit anglais par défaut.
+	handle_path /email/* {
+		root * /opt/arpente/email
+		file_server
+	}
+
+	# ── GoTrue : liste d'admission ─────────────────────────────────────────
+	# Seuls passent les gestes de l'app et des pages du service ; tout le
+	# reste reçoit 404, y compris une route d'une version future de GoTrue.
+	# Fermés exprès : mot de passe (signup, grant password, recover),
+	# lien magique, renvoi, PUT /user (un changement d'adresse répondrait
+	# email_exists et trahirait un compte), identités, admin.
 	handle /auth/v1/* {
-		uri strip_prefix /auth/v1
-		reverse_proxy 127.0.0.1:9999
+		# Envoi et vérification d'un code : par la passerelle du service, qui
+		# rend la même réponse que l'adresse ait un compte ou non, et limite
+		# les essais par adresse (docs/mcp-architecture.md).
+		@passerelle {
+			method POST
+			path /auth/v1/otp /auth/v1/verify
+		}
+		handle @passerelle {
+			reverse_proxy 127.0.0.1:3012
+		}
+
+		# /token : rafraîchissement de session ou jeton Google, en JSON
+		# seulement. GoTrue lit grant_type par FormValue — la PREMIÈRE valeur
+		# de la requête, le corps n'étant lu que s'il est en formulaire :
+		# {query.grant_type} rend cette même première valeur, et le JSON exigé
+		# écarte le corps. Un filtre plus lâche se contourne
+		# (?grant_type=password&grant_type=refresh_token, ou corps formulaire).
+		@jeton {
+			method POST
+			path /auth/v1/token
+			header Content-Type application/json*
+			expression `{query.grant_type} == "refresh_token" || {query.grant_type} == "id_token"`
+		}
+		@lecture {
+			method GET
+			path /auth/v1/user
+		}
+		@deconnexion {
+			method POST
+			path /auth/v1/logout
+		}
+		# TRANSITION — la connexion anonyme de l'app alpha (signInAnonymously)
+		# passe par /signup. Retirer ce bloc à la bascule, avec
+		# GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED=false et la migration
+		# 20261006_comptes_obligatoires.sql.
+		@transition_anonyme {
+			method POST
+			path /auth/v1/signup
+		}
+		handle @jeton {
+			uri strip_prefix /auth/v1
+			reverse_proxy 127.0.0.1:9999
+		}
+		handle @lecture {
+			uri strip_prefix /auth/v1
+			reverse_proxy 127.0.0.1:9999
+		}
+		handle @deconnexion {
+			uri strip_prefix /auth/v1
+			reverse_proxy 127.0.0.1:9999
+		}
+		handle @transition_anonyme {
+			uri strip_prefix /auth/v1
+			reverse_proxy 127.0.0.1:9999
+		}
+		handle {
+			header Content-Type application/json
+			respond `{"code":404,"error_code":"not_found","msg":"Route d'authentification fermée."}` 404
+		}
 	}
 
 	handle /rest/v1/* {
@@ -125,6 +212,6 @@ api.arpente.heianenterprise.com {
 	# applicative malformée.
 	handle {
 		header Content-Type application/json
-		respond `{"message":"Arpente API — /auth/v1 et /rest/v1 uniquement"}` 404
+		respond `{"message":"Arpente API — /auth/v1, /rest/v1 et l'assistant IA uniquement"}` 404
 	}
 }

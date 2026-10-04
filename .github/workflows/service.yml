@@ -1,9 +1,10 @@
 name: Service
 
-# Image du service d'Arpente (assistant IA, passerelle de connexion) :
-# vérifiée puis publiée sur GHCR à chaque push sur main qui la touche. La
-# mise en ligne reste un geste à part : `sh deploy/deploy-service.sh <serveur>`
-# tire l'image `latest` et relance le conteneur — le serveur ne compile rien.
+# Service d'Arpente (assistant IA, passerelle de connexion) : typecheck,
+# tests, puis construction de l'image — sans la publier. La mise en ligne
+# reste un geste à part : `sh deploy/deploy-service.sh <serveur>` construit
+# l'image sur le poste, au commit courant, et l'envoie au serveur, qui ne
+# compile rien.
 #
 # Les actions qui ne viennent pas de GitHub sont épinglées sur une empreinte
 # de commit, jamais sur un tag (même versions qu'Agora).
@@ -16,15 +17,13 @@ name: Service
       - 'utils/**'
       - 'types/**'
       - 'content/**'
+      - 'docs/mcp-architecture.md'
       - '.github/workflows/service.yml'
   workflow_dispatch:
 
 concurrency:
   group: service-arpente
   cancel-in-progress: false
-
-env:
-  IMAGE: ghcr.io/lelio88/arpente-service
 
 jobs:
   verifier:
@@ -48,33 +47,21 @@ jobs:
         run: npm run typecheck && npm test
 
   image:
-    name: Image
+    name: Image (construite, non publiée)
     needs: verifier
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
     steps:
       - uses: actions/checkout@v4
 
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v4.4.1
 
-      - name: Se connecter à GHCR
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v4.6.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Construire et publier
+      - name: Construire
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v7.4.0
         with:
           context: .
           file: service/Dockerfile
-          push: true
-          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
-          tags: |
-            ${{ env.IMAGE }}:${{ github.sha }}
-            ${{ env.IMAGE }}:latest
+          push: false
           cache-from: type=gha,scope=service
           cache-to: type=gha,mode=max,scope=service

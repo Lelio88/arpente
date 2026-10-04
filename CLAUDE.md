@@ -20,7 +20,7 @@ Topologie rapide — le dépôt **est** l'application, sans sous-dossier interm�
 - `supabase/` — `schema.sql` (état complet : schéma, RLS, fonctions, purge), `migrations/` (ce qui a été joué sur la base en service), `tests/conformite.test.sql` (RLS et purge, sur base jetable)
 - `scripts/` — outillage hors-app : extraction du fond de carte, contrôle avant build, compilation des cibles AR, synthèse du jingle d'ouverture, publication sur Play (`publish_play.py`, commun aux dépôts du conteneur)
 - `service/` — service Node : serveur MCP de l'assistant IA, son serveur OAuth, passerelle `/otp` et `/verify` devant GoTrue, pages d'accord et de suppression du compte ; réutilise `utils/` et compile `content/` au build de son image
-- `deploy/caddy/arpente.caddy` — vhost Caddy de l'API en ligne, **versionné** : il ne vit ailleurs que sur le serveur, où une réinstallation le perdrait ; installé par `deploy/deploy-caddy.sh`
+- `deploy/` — vhost Caddy de l'API (`caddy/arpente.caddy`, avec la liste d'admission devant GoTrue), ajout au compose de production pour les comptes et le service (`docker-compose.comptes.yml`), gabarits d'e-mail : **versionnés**, faute de quoi une réinstallation du serveur les perdrait ; installés par `deploy-caddy.sh` et `deploy-service.sh`
 - `android/` — projet natif Capacitor, **versionné** : il porte les permissions, le `versionCode`, la signature et les icônes, que `npx cap add` ne saurait pas régénérer
 
 ## III. Pile Technologique
@@ -70,7 +70,7 @@ npm run generate                 # build statique offline → .output/public
 npm run download-basemap         # fonds de carte (-- caen | -- troyes) ; binaire pmtiles requis — voir README
 npm run compile-targets          # compile les cibles AR (.mind) depuis assets/targets/raw/
 npx cap sync && npx cap open android
-cd service && npm run typecheck && npm test   # le service ; npm run test:base contre une base jetable (docs/mcp-architecture.md)
+cd service && npm run typecheck && npm test   # le service ; test:base sur base jetable ; mise en ligne : sh deploy/deploy-service.sh <serveur> (docs/mcp-architecture.md)
 python scripts/publish_play.py --track alpha --notes-file notes.txt --dry-run   # puis sans --dry-run — voir docs/publication-play.md
 ```
 

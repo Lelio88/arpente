@@ -1,0 +1,91 @@
+# Comptes et assistant IA d'Arpente : ce qui s'AJOUTE au compose de
+# production (/opt/arpente/docker-compose.yml, qui reste sur le serveur).
+# Docker Compose fusionne les deux fichiers :
+#   docker compose -f docker-compose.yml -f docker-compose.comptes.yml up -d auth service
+# deploy/deploy-service.sh l'installe et le joue.
+#
+# Ce que ce fichier change :
+#   - GoTrue passe en v2.195.0 (codes à 6 chiffres réglables, claim
+#     is_anonymous, sessions.refreshed_at) et ouvre la connexion par code
+#     e-mail (Brevo) et par jeton Google ;
+#   - le service d'Arpente (service/) rejoint le réseau « arpente ».
+#
+# Interrupteurs de la mise en ligne (dans /opt/arpente/.env), dans l'ordre de
+# docs/mcp-architecture.md § Mise en ligne :
+#   ANONYME_ACTIF=true    tant que l'app alpha anonyme est en service ; false à la bascule
+#   CAPTCHA_ACTIF=false   true à la bascule, une fois l'app qui envoie le jeton publiée
+#   GOOGLE_ACTIF=false    true une fois le client OAuth Google créé
+#   OAUTH_ACTIF=false     true pour ouvrir l'assistant IA, en dernier
+#
+# Choix non évidents :
+#   - le lien magique reste ALLUMÉ : /otp passe par son gestionnaire. Caddy
+#     ferme /magiclink, et la passerelle du service force create_user=true —
+#     sans quoi GoTrue répondrait 422 pour une adresse inconnue et 200 pour un
+#     compte ;
+#   - SECURITY_MANUAL_LINKING_ENABLED reste false : avec lui, un jeton volé
+#     plus un id_token « link_identity » rattacheraient le Google d'un autre ;
+#   - les gabarits d'e-mail sont lus par URL (GoTrue ne sait pas autrement),
+#     servis par Caddy depuis /opt/arpente/email/ ;
+#   - RATE_LIMIT_HEADER : derrière Caddy, toutes les requêtes viennent de la
+#     même adresse ; sans lui, la limite par IP serait commune à tous.
+
+services:
+  auth:
+    image: supabase/gotrue:v2.195.0
+    environment:
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: ${ANONYME_ACTIF:-true}
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_EXTERNAL_EMAIL_MAGIC_LINK_ENABLED: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "false"
+      GOTRUE_MAILER_OTP_LENGTH: 6
+      GOTRUE_MAILER_OTP_EXP: 900
+      GOTRUE_MAILER_TEMPLATES_CONFIRMATION: https://api.arpente.heianenterprise.com/email/connexion.html
+      GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: https://api.arpente.heianenterprise.com/email/connexion.html
+      GOTRUE_MAILER_SUBJECTS_CONFIRMATION: "Ton code de connexion Arpente"
+      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: "Ton code de connexion Arpente"
+      GOTRUE_SMTP_HOST: smtp-relay.brevo.com
+      GOTRUE_SMTP_PORT: 587
+      GOTRUE_SMTP_USER: ${SMTP_USER:?SMTP_USER manquant dans .env}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS:?SMTP_PASS manquant dans .env}
+      GOTRUE_SMTP_ADMIN_EMAIL: no-reply@heianenterprise.com
+      GOTRUE_SMTP_SENDER_NAME: Arpente
+      GOTRUE_RATE_LIMIT_EMAIL_SENT: 30
+      GOTRUE_SMTP_MAX_FREQUENCY: 60s
+      GOTRUE_RATE_LIMIT_OTP: 30
+      GOTRUE_RATE_LIMIT_VERIFY: 30
+      GOTRUE_RATE_LIMIT_HEADER: X-Forwarded-For
+      GOTRUE_SECURITY_MANUAL_LINKING_ENABLED: "false"
+      GOTRUE_SECURITY_CAPTCHA_ENABLED: ${CAPTCHA_ACTIF:-false}
+      GOTRUE_SECURITY_CAPTCHA_PROVIDER: turnstile
+      GOTRUE_SECURITY_CAPTCHA_SECRET: ${TURNSTILE_SECRET:-}
+      GOTRUE_EXTERNAL_GOOGLE_ENABLED: ${GOOGLE_ACTIF:-false}
+      GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID: ${GOOGLE_WEB_CLIENT_ID:-}
+      GOTRUE_EXTERNAL_GOOGLE_SECRET: ${GOOGLE_WEB_CLIENT_SECRET:-}
+      GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: https://api.arpente.heianenterprise.com/auth/v1/callback
+
+  # Le service d'Arpente : passerelle de connexion, pages, assistant IA.
+  # Image construite sur le poste par deploy/deploy-service.sh (le serveur ne
+  # compile rien), étiquetée par le commit.
+  service:
+    image: arpente-service:${SERVICE_TAG:?SERVICE_TAG manquant dans .env}
+    container_name: arpente_service
+    restart: unless-stopped
+    mem_limit: 160m
+    depends_on:
+      db:
+        condition: service_healthy
+      auth:
+        condition: service_started
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3012
+      PUBLIC_URL: https://api.arpente.heianenterprise.com
+      DATABASE_URL: postgres://arpente_assistant:${ASSISTANT_DB_PASSWORD:?ASSISTANT_DB_PASSWORD manquant dans .env}@db:5432/postgres
+      GOTRUE_URL: http://auth:9999
+      ASSISTANT_SECRET: ${ASSISTANT_SECRET:?ASSISTANT_SECRET manquant dans .env}
+      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+      GOOGLE_WEB_CLIENT_ID: ${GOOGLE_WEB_CLIENT_ID:-}
+      OAUTH_ACTIF: ${OAUTH_ACTIF:-false}
+    ports:
+      - "127.0.0.1:3012:3012"
+    networks: [arpente]

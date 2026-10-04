@@ -1,0 +1,23 @@
+<!doctype html>
+<!--
+  Code de connexion d'Arpente : gabarit de GoTrue pour l'inscription
+  (GOTRUE_MAILER_TEMPLATES_CONFIRMATION, adresse neuve) ET la connexion
+  (GOTRUE_MAILER_TEMPLATES_MAGIC_LINK, adresse connue) — le même texte, pour
+  que l'e-mail ne dise pas non plus si un compte existait déjà.
+  Un code seulement, aucun lien : la connexion se fait dans l'app ou sur la
+  page qui l'a demandé. Servi par Caddy depuis /opt/arpente/email/.
+-->
+<html lang="fr">
+<head><meta charset="utf-8"><title>Ton code Arpente</title></head>
+<body style="margin:0;padding:24px;background:#f7f4ee;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#1f2421;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:12px;padding:24px;">
+    <tr><td>
+      <p style="margin:0 0 16px;font-weight:700;color:#2d6a4f;letter-spacing:0.04em;">Arpente</p>
+      <p style="margin:0 0 16px;font-size:16px;">Voici ton code de connexion :</p>
+      <p style="margin:0 0 16px;font-size:32px;font-weight:700;letter-spacing:0.3em;">{{ .Token }}</p>
+      <p style="margin:0 0 16px;font-size:14px;color:#4c5650;">Il est valable 15 minutes. Saisis-le là où tu l'as demandé : dans l'app, ou sur la page Arpente ouverte par ton assistant IA.</p>
+      <p style="margin:0;font-size:14px;color:#4c5650;">Si tu n'as rien demandé, ignore ce message : personne ne peut se connecter sans ce code.</p>
+    </td></tr>
+  </table>
+</body>
+</html>

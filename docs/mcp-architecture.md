@@ -105,6 +105,17 @@ ARPENTE_BASE_ADMIN=postgres://… ARPENTE_BASE_SERVICE=postgres://arpente_assist
 
 Côté base : `supabase/tests/conformite.test.sql` (comptes requis, accès d'assistant, purge) et `supabase/tests/role_assistant.test.sql`, joué **connecté comme `arpente_assistant`** — `SET ROLE` dépend de l'utilisateur de la session.
 
+## Mise en ligne
+
+Le compose de production reste sur le serveur (`/opt/arpente/docker-compose.yml`) ; ce dépôt versionne ce qui s'y **ajoute** : `deploy/docker-compose.comptes.yml` (GoTrue v2.195 et ses réglages de connexion, le service), les variables de `deploy/comptes.env.example`, et les gabarits `deploy/email/`. `sh deploy/deploy-service.sh <serveur>` construit l'image sur le poste au commit courant, l'envoie, installe ces fichiers et recrée `auth` et `service`.
+
+Quatre interrupteurs du `.env` du serveur ouvrent les étapes, **dans cet ordre** — chacune annoncée, suivie d'un essai de fumée :
+
+1. **Serveur, sans casser l'app alpha anonyme** : `pg_dump` ; migration `20261005_comptes_assistant.sql` et mot de passe du rôle `arpente_assistant` ; secrets du service et de Brevo dans le `.env` ; `deploy-service.sh` (GoTrue mis à jour, connexion par code ouverte, `ANONYME_ACTIF=true`, `CAPTCHA_ACTIF=false`, `OAUTH_ACTIF=false`) ; vhost Caddy (`deploy-caddy.sh`, liste d'admission avec `/signup` encore ouvert). `/suppression-compte` doit répondre avant l'envoi à Play.
+2. **L'app** qui sait se connecter, sur la piste alpha, avec la politique de confidentialité, la déclaration Sécurité des données et l'URL de suppression.
+3. **La bascule**, une fois les testeurs à jour : `CAPTCHA_ACTIF=true` (et `TURNSTILE_SECRET`), `ANONYME_ACTIF=false`, bloc « TRANSITION » retiré du vhost, migration `20261006_comptes_obligatoires.sql` (identités anonymes supprimées). `GOOGLE_ACTIF=true` dès que le client OAuth Google existe.
+4. **L'assistant** : `OAUTH_ACTIF=true`, `docs/assistant.html` publiée, essai avec un vrai client, puis l'accès d'essai révoqué.
+
 ## Anti-patterns
 
 - ❌ Signer les jetons d'assistant avec le `JWT_SECRET` de GoTrue : ils ouvriraient PostgREST.
