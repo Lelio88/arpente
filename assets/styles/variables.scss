@@ -9,7 +9,10 @@ $color-highlight-fond: #c41f3d;   // fond de bouton, texte blanc : 5,8:1
 $color-highlight-texte: #ff7a8f;  // texte d'alerte sur fond sombre : 6,8:1
 $color-success: #00ffaa;
 $color-text: #eaeaea;
-$color-text-muted: #8a8a9a;
+// Texte secondaire : au moins 4,5:1 (WCAG AA) sur toutes les surfaces
+// ci-dessus, #0f3460 compris (4,7:1) ; le #8a8a9a d'origine tombait à 4,1:1
+// sur $color-surface-elevated.
+$color-text-muted: #9e9eae;
 $color-surface: #1e1e30;
 $color-surface-elevated: #2a2a40;
 

@@ -109,8 +109,13 @@ export default defineNuxtConfig({
   app: {
     head: {
       title: 'Arpente',
+      htmlAttrs: { lang: 'fr' },
       meta: [
-        { name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' },
+        // Jamais user-scalable=no ni maximum-scale : le zoom du navigateur est
+        // un besoin d'accessibilité (WCAG 1.4.4). La carte et le tracé du
+        // puzzle gardent leurs gestes : Leaflet et PuzzleOverlay posent
+        // touch-action: none sur leur seule surface.
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
         { name: 'theme-color', content: '#1a1a2e' },
         { name: 'description', content: 'Guide de visite interactif — carte et parcours thematiques hors ligne' },
       ],

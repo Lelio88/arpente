@@ -61,7 +61,9 @@ const tabs = computed(() =>
   align-items: center;
   gap: 2px;
   padding: $spacing-xs $spacing-md;
-  opacity: 0.5;
+  // 0,6 et non 0,5 : l'étiquette d'un onglet inactif doit garder 4,5:1 sur
+  // $color-surface (5,7:1 ici, 4,4:1 à 0,5).
+  opacity: 0.6;
   transition: opacity $transition-fast;
 
   &.active {

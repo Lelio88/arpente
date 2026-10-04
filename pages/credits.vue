@@ -156,7 +156,11 @@ const VILLES: Record<string, string> = { caen: 'Caen', troyes: 'Troyes' }
   overflow-wrap: anywhere;
 }
 
+// Variante lisible du rouge d'accent (#e94560 ne fait que 4,4:1 sur le fond),
+// et soulignés : au milieu d'un paragraphe, la couleur seule ne distingue pas
+// un lien du texte qui l'entoure.
 a {
-  color: $color-highlight;
+  color: $color-highlight-texte;
+  text-decoration: underline;
 }
 </style>
