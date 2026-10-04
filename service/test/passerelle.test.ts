@@ -54,6 +54,11 @@ before(async () => {
         return
       }
       if (req.url === '/token?grant_type=password') {
+        if ((corps.gotrue_meta_security as { captcha_token?: string } | undefined)?.captcha_token === 'mauvais') {
+          res.statusCode = 400
+          res.end(JSON.stringify({ code: 400, error_code: 'captcha_failed', msg: 'captcha' }))
+          return
+        }
         if (corps.email === EXAMEN.adresse && corps.password === EXAMEN.motDePasse) {
           res.end(JSON.stringify({ access_token: 'jeton-examen', refresh_token: 'r', user: { email: corps.email } }))
           return
@@ -204,6 +209,21 @@ describe('compte d\'examen (Google Play)', () => {
     assert.equal(r.statut, 403)
     assert.match(r.corps, /otp_expired/)
     assert.equal(nombreRecus(), avant)
+  })
+
+  test('avec le CAPTCHA : le jeton donné à l\'envoi accompagne la connexion, une seule fois', async () => {
+    await appeler('/auth/v1/otp', { email: EXAMEN.adresse, gotrue_meta_security: { captcha_token: 'jeton-turnstile' } })
+    assert.equal((await appeler('/auth/v1/verify', { type: 'email', email: EXAMEN.adresse, token: EXAMEN.code })).statut, 200)
+    assert.deepEqual(recus.at(-1)!.corps.gotrue_meta_security, { captcha_token: 'jeton-turnstile' })
+    assert.equal((await appeler('/auth/v1/verify', { type: 'email', email: EXAMEN.adresse, token: EXAMEN.code })).statut, 200)
+    assert.equal(recus.at(-1)!.corps.gotrue_meta_security, undefined, 'un jeton Turnstile ne sert qu\'une fois')
+  })
+
+  test('un CAPTCHA refusé par GoTrue revient tel quel, pour que l\'app le dise', async () => {
+    await appeler('/auth/v1/otp', { email: EXAMEN.adresse, gotrue_meta_security: { captcha_token: 'mauvais' } })
+    const r = await appeler('/auth/v1/verify', { type: 'email', email: EXAMEN.adresse, token: EXAMEN.code })
+    assert.equal(r.statut, 400)
+    assert.match(r.corps, /captcha_failed/)
   })
 
   test('le code fixe ne vaut que pour l\'adresse d\'examen', async () => {

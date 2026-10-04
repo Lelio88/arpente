@@ -41,7 +41,11 @@
  * public par Caddy). Un code fixe ne s'use pas comme un code de 15 minutes :
  * en plus des compteurs ordinaires, au plus `MAX_ECHECS_EXAMEN` échecs par
  * jour, toutes IP confondues. Toutes les autres adresses suivent le chemin
- * ordinaire.
+ * ordinaire. Avec le CAPTCHA, GoTrue exige un jeton Turnstile pour le grant
+ * `password` aussi : celui que l'app joint à la demande de code (que la
+ * passerelle ne relaie pas, n'ayant rien à envoyer) est gardé quelques
+ * minutes par IP, puis joint UNE fois à la connexion — un jeton Turnstile ne
+ * sert qu'une fois et vit cinq minutes.
  *
  * Invariant : aucun corps (adresse, code, jeton) n'est journalisé.
  */
@@ -67,6 +71,9 @@ const FENETRE_IP_MS = 10 * 60 * 1000
 /** Compte d'examen : échecs tolérés par jour, toutes IP confondues (un code fixe n'expire pas). */
 export const MAX_ECHECS_EXAMEN = 10
 const FENETRE_EXAMEN_MS = 24 * 3600 * 1000
+/** Un jeton Turnstile vit 300 s : gardé un peu moins, pour ne jamais joindre un jeton mort. */
+const VIE_CAPTCHA_EXAMEN_MS = 290_000
+const MAX_CAPTCHAS_EXAMEN = 100
 // ASCII seulement, sans guillemets ni chevrons : une variante d'écriture que
 // GoTrue ramènerait à la même adresse (« <a@b.c> », « "a"@b.c », un İ turc
 // que Go et JavaScript ne mettent pas en minuscule de la même façon) aurait
@@ -147,7 +154,22 @@ export function routeurPasserelle(
   const envoisIp = new Fenetre(ENVOIS_PAR_IP, FENETRE_IP_MS)
   const verificationsIp = new Fenetre(VERIFICATIONS_PAR_IP, FENETRE_IP_MS)
   const echecsExamen = new Fenetre(MAX_ECHECS_EXAMEN, FENETRE_EXAMEN_MS)
+  // Jeton CAPTCHA de la dernière demande de code d'examen, par IP (voir l'en-tête).
+  const captchasExamen = new Map<string, { jeton: string, expire: number }>()
   let enCours = 0
+
+  function garderCaptchaExamen(ip: string, jeton: string | undefined): void {
+    if (!jeton) return
+    if (captchasExamen.size >= MAX_CAPTCHAS_EXAMEN) captchasExamen.clear()
+    captchasExamen.set(ip, { jeton, expire: maintenant() + VIE_CAPTCHA_EXAMEN_MS })
+  }
+
+  /** Le jeton gardé pour cette IP, retiré au passage : il ne sert qu'une fois. */
+  function prendreCaptchaExamen(ip: string): { captcha_token?: string } {
+    const garde = captchasExamen.get(ip)
+    captchasExamen.delete(ip)
+    return garde && garde.expire > maintenant() ? { captcha_token: garde.jeton } : {}
+  }
 
   async function relayer(req: Request, chemin: string, corps: Record<string, unknown>): Promise<RelaiGotrue> {
     const entetes: Record<string, string> = { 'content-type': 'application/json' }
@@ -189,6 +211,7 @@ export function routeurPasserelle(
     }
     // Compte d'examen : aucun e-mail à envoyer, mais la réponse de tout le monde.
     if (estExamen(adresse)) {
+      garderCaptchaExamen(req.ip ?? 'inconnue', securite(corps).captcha_token)
       await reponseUniforme()
       return
     }
@@ -259,8 +282,15 @@ export function routeurPasserelle(
     if (!examen || !memeCode(code, examen.code)) {
       return { statut: 403, corps: CODE_REFUSE, version: req.get('x-supabase-api-version') ?? null }
     }
-    const r = await relayer(req, '/token?grant_type=password', { email: adresse, password: examen.motDePasse })
+    const captcha = prendreCaptchaExamen(req.ip ?? 'inconnue')
+    const r = await relayer(req, '/token?grant_type=password', {
+      email: adresse,
+      password: examen.motDePasse,
+      ...(captcha.captcha_token ? { gotrue_meta_security: captcha } : {}),
+    })
     if (r.statut >= 200 && r.statut < 300) return r
+    // CAPTCHA absent, expiré ou refusé : une erreur de saisie, que l'app sait dire.
+    if (codeErreur(r.corps) === 'captcha_failed') return r
     // Le compte d'examen est mal réglé (mot de passe, compte absent) : à corriger côté serveur.
     journal.erreur('passerelle_examen_refuse', { statut: r.statut })
     return { statut: 502, corps: erreurGotrue(502, 'unexpected_failure', 'Connexion momentanément impossible.'), version: r.version }
