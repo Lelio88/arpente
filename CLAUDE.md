@@ -82,7 +82,7 @@ python scripts/publish_play.py --track alpha --notes-file notes.txt --dry-run   
 |---|---|
 | Ville ajoutée (`CITIES`, contenu, bornes) | `README.md` + `scripts/cities.ts` + section « Système multi-ville » de [`docs/architecture.md`](./docs/architecture.md) |
 | Table, policy ou fonction Supabase | une migration `supabase/migrations/` (jouée à la main sur la prod) **et** `supabase/schema.sql` + `supabase/tests/conformite.test.sql` si la RLS change + « Modèle de données » de `docs/architecture.md` |
-| Donnée collectée, durée de conservation ou destinataire | `docs/privacy.html` (+ la purge de `schema.sql` si une durée change) + la Data safety de la fiche Play |
+| Donnée collectée, durée de conservation ou destinataire ; règle d'usage (compte, groupes, assistant) | `docs/privacy.html` (+ la purge de `schema.sql` si une durée change) + la Data safety de la fiche Play ; `docs/cgu.html` pour les règles d'usage |
 | Nouveau composable, store ou utilitaire | Catalogue correspondant dans `docs/architecture.md` |
 | Nouvelle variable d'environnement | `.env.example` + `runtimeConfig` de `nuxt.config.ts` (app) ; tableau « Configuration » de `docs/mcp-architecture.md` (service) |
 | Outil MCP, route OAuth, page ou passerelle du service | `service/` + `docs/mcp-architecture.md` (un test exige chaque outil) + `docs/assistant.html` |

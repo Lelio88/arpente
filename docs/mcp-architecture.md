@@ -119,6 +119,10 @@ Quatre interrupteurs du `.env` du serveur ouvrent les étapes, **dans cet ordre*
 3. **La bascule**, une fois les testeurs à jour : `CAPTCHA_ACTIF=true` (et `TURNSTILE_SECRET`), `ANONYME_ACTIF=false`, bloc « TRANSITION » retiré du vhost, migration `20261006_comptes_obligatoires.sql` (identités anonymes supprimées). `GOOGLE_ACTIF=true` dès que le client OAuth Google existe.
 4. **L'assistant** : `OAUTH_ACTIF=true`, `docs/assistant.html` publiée, essai avec un vrai client, puis l'accès d'essai révoqué.
 
+**Fournisseurs**, réglés à la main ; leurs identifiants vivent dans `.arpente-secrets/fournisseurs.env` :
+- **Google Cloud**, projet « Arpente » : un client **Web** (origine JavaScript `https://api.arpente.heianenterprise.com`, aucune adresse de retour — son identifiant est l'audience que GoTrue accepte, et le `serverClientId` de l'app) et trois clients **Android** `app.arpente`, un par empreinte SHA-1 (Play App Signing, clé d'envoi, clé de debug du poste). Écran de consentement : logo `assets/branding/logo-google-120.png`, accueil, `privacy.html` et `cgu.html` du site, domaine `heianenterprise.com`. Le logo impose la vérification de la marque par Google, qui lit ces pages en ligne.
+- **Cloudflare Turnstile** : un widget pour `api.arpente.heianenterprise.com`, où la page `/captcha` l'affiche.
+
 ## Risques acceptés
 
 - **Connexion bloquée par une rafale d'envois avant la bascule** : GoTrue plafonne les e-mails pour toute l'instance (30 par heure). Tant que le CAPTCHA n'est pas allumé, des envois depuis de nombreuses IP peuvent l'épuiser ; le plafond par IP de la passerelle n'arrête qu'une source. Le CAPTCHA, allumé à la bascule, ferme cette voie.

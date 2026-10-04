@@ -158,6 +158,8 @@ async function supprimerLeCompte() {
           Ton adresse, ton pseudo, tes groupes et tes votes sont gardés sur notre serveur, en Allemagne.
           Un groupe inactif depuis 6 mois est effacé, un compte sans groupe ni activité depuis un an aussi.
           <a :href="LIENS_LEGAUX.confidentialite" target="_blank" rel="noopener">Politique de confidentialité</a>
+          ·
+          <a :href="LIENS_LEGAUX.conditions" target="_blank" rel="noopener">Conditions d'utilisation</a>
         </p>
         <p v-if="erreurSuppression" class="compte-erreur" role="alert">{{ erreurSuppression }}</p>
         <button v-if="!confirmeSuppression" type="button" class="bouton danger" @click="confirmeSuppression = true">

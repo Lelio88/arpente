@@ -106,7 +106,7 @@ Le store `vote` porte en plus l'abonnement Realtime : un seul canal ouvert à la
 | `voteAggregation.ts` | Agrège les votes d'un groupe : approbation par POI, **médiane** des préférences de nombre et de durée, puis ordonnancement au plus proche voisin |
 | `decision.ts` | Le cœur d'une décision de groupe, **partagé par l'app et par le service de l'assistant IA** : `preparerDecision` (lieux connus seulement, refus d'un parcours vide) et `mesurerTrajet` (OSRM, ou somme des haversines marquée `isEstimated`), dont le transport réseau est injecté par l'appelant |
 | `sessionStorage.ts` | Stockage de la session : coffre chiffré avec reprise unique de l'ancienne session en clair (`stockageSessionMigrant`) ; `identiteDisparue` distingue une identité effacée par le serveur d'une simple panne réseau |
-| `liensLegaux.ts` | URL des pages légales publiées (`arpente.heianenterprise.com`) ; `confidentialite` est celle de la fiche Play |
+| `liensLegaux.ts` | URL des pages légales publiées (`arpente.heianenterprise.com`) ; `confidentialite` est celle de la fiche Play, `conditions` celle qu'on accepte en se connectant (et que l'écran de consentement de Google cite) |
 | `features.ts` | Drapeaux de ce que l'app expose. `AR_PUZZLE_ENABLED` conditionne l'accès au puzzle, qui reste éteint tant qu'aucune cible `.mind` n'est compilée |
 
 ## Système multi-ville

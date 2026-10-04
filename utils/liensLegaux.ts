@@ -12,6 +12,8 @@ const BASE = 'https://arpente.heianenterprise.com'
 export const LIENS_LEGAUX = {
   confidentialite: `${BASE}/privacy.html`,
   mentions: `${BASE}/mentions-legales.html`,
+  /** Acceptées à la connexion (ConnexionPanel) ; aussi déclarées à Google (écran de consentement). */
+  conditions: `${BASE}/cgu.html`,
   /** Brancher un assistant IA : adresse, gestes par assistant, outils, règles. */
   assistant: `${BASE}/assistant.html`,
 } as const

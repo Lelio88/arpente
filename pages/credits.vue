@@ -42,6 +42,8 @@ const VILLES: Record<string, string> = { caen: 'Caen', troyes: 'Troyes' }
         <a :href="LIENS_LEGAUX.confidentialite" target="_blank" rel="noopener">Politique de confidentialité</a>
         ·
         <a :href="LIENS_LEGAUX.mentions" target="_blank" rel="noopener">Mentions légales</a>
+        ·
+        <a :href="LIENS_LEGAUX.conditions" target="_blank" rel="noopener">Conditions d'utilisation</a>
       </p>
     </section>
 

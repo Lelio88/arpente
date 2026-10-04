@@ -14,6 +14,7 @@
  */
 import { useAuthStore } from '~/stores/auth'
 import { messageConnexion } from '~/utils/messagesConnexion'
+import { LIENS_LEGAUX } from '~/utils/liensLegaux'
 
 const emit = defineEmits<{ connecte: [] }>()
 
@@ -187,6 +188,11 @@ function changerAdresse() {
       </button>
     </template>
 
+    <p class="connexion-aide connexion-conditions">
+      En te connectant, tu acceptes les
+      <a :href="LIENS_LEGAUX.conditions" target="_blank" rel="noopener">conditions d'utilisation</a>.
+    </p>
+
     <p class="sr-only" aria-live="polite">{{ annonce }}</p>
   </section>
 </template>
@@ -217,6 +223,16 @@ function changerAdresse() {
   color: $color-text-muted;
   font-size: $font-size-sm;
   margin-top: $spacing-xs;
+}
+
+// Souligné : au milieu d'une phrase, la couleur seule ne distingue pas le lien.
+.connexion-conditions {
+  margin-top: $spacing-lg;
+
+  a {
+    color: $color-text;
+    text-decoration: underline;
+  }
 }
 
 .connexion-champ {
