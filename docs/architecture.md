@@ -121,13 +121,18 @@ Devant cette pile, le Caddy du serveur tient le rôle de Kong (routage des préf
 
 | Table | Rôle |
 |---|---|
-| `profiles` | Pseudo attaché à l'utilisateur anonyme ; unicité insensible à la casse ; lisible par soi-même et ses **coéquipiers** seulement (`shares_group_with`) |
+| `profiles` | Pseudo attaché au compte ; unicité insensible à la casse ; lisible par soi-même et ses **coéquipiers** seulement (`shares_group_with`) |
 | `groups` | Groupe de visite : code d'invitation, ville, statut `voting` / `decided` |
 | `group_members` | Roster (clé primaire composite) |
 | `poi_votes` | Vote d'approbation : une ligne = un membre approuve un POI |
 | `preference_votes` | Une ligne par membre : nombre de POI et durée souhaités |
 | `visited_pois` | Checklist partagée — n'importe quel membre coche pour le groupe |
 | `decided_routes` | Instantané immuable d'un parcours décidé ; une nouvelle décision = une nouvelle ligne |
+| `assistant_grants` | Accès accordés à un assistant IA : l'app liste et révoque les siens (sans `refresh_gen`, le compteur de rotation des jetons) ; le service de l'assistant les crée et les vérifie à chaque appel |
+
+**Les groupes sont réservés aux comptes** (e-mail ou Google). `compte_requis()` n'est vraie que pour un jeton dont le claim `is_anonymous` vaut `false` — un jeton sans ce claim est traité comme anonyme, l'échec est fermé. Chaque table des groupes porte une politique **restrictive** « compte requis », qui s'ajoute aux autres et vaut aussi pour Realtime ; `preview_group_by_code` et `join_group_by_code`, qui contournent la RLS, la vérifient elles-mêmes.
+
+**Le rôle `arpente_assistant`** est celui du service de l'assistant. Il est `NOINHERIT` : membre de `authenticated` sans en hériter les droits, il ne touche qu'à `assistant_grants` tant qu'il n'endosse pas un membre (`SET LOCAL ROLE authenticated` + claims) — et alors la RLS s'applique comme à l'app. La base est en Postgres 15, où la syntaxe `grant … with inherit false, set true` n'existe pas encore. `supabase/tests/role_assistant.test.sql` l'éprouve **depuis une session ouverte à son nom** : `SET ROLE` dépend de l'utilisateur de la session, un test joué en `postgres` ne prouverait rien.
 
 Trois fonctions `security definer` portent la logique sensible : `generate_join_code()` (alphabet sans `O`/`0` ni `I`/`1`, ambigus à l'oral), `preview_group_by_code()` et `join_group_by_code()` — elles permettent de rejoindre un groupe **sans exposer la table `groups` en lecture**. `is_group_member()` est également `security definer` : une policy sur `group_members` qui se référencerait elle-même provoquerait une récursion RLS.
 
@@ -150,7 +155,13 @@ Les deux bugs ont survécu à la relecture et au typage : ils ne vivent ni dans 
 - **Un membre ne change que le statut d'un groupe** : la policy `update` dit *qui* (un membre), le `grant update (status)` par colonne dit *quoi*. Le nom, le code, la ville et le créateur ne bougent plus après la création.
 - **Seul le créateur supprime un groupe** (policy `delete`) ; tout part en cascade (votes, préférences, coches, parcours). Sous RLS, un `DELETE` refusé n'est pas une erreur mais zéro ligne affectée : `groupStore.deleteGroup` relit ce qu'il a supprimé et échoue s'il n'a rien touché.
 - **Chacun supprime son identité** (`delete_my_account()`, `security definer`, l'identifiant vient du jeton) : le profil part en cascade depuis `auth.users`, avec ses adhésions, ses votes et ses préférences. Les traces laissées chez les autres (`groups.created_by`, `visited_pois.user_id`, `decided_routes.decided_by`) passent à `null` (`on delete set null`) : le groupe reste aux autres, l'auteur s'affiche « ? ».
-- **Purge nocturne** (`purge_inactive()`, planifiée par `pg_cron` à 3 h 17) : groupe sans activité depuis **6 mois** (sa trace la plus récente, toutes tables confondues) ; identité anonyme membre d'aucun groupe depuis **30 jours** (`last_sign_in_at`, qui ne bouge pas au renouvellement de session). Ces durées sont celles que promet `docs/privacy.html`.
+- **Purge nocturne** (`purge_inactive()`, planifiée par `pg_cron` à 3 h 17) :
+  - groupe sans activité depuis **6 mois** (sa trace la plus récente, toutes tables confondues) ;
+  - adresse saisie mais jamais confirmée par son code, après **24 h** — chaque demande de code pour une adresse neuve en crée une ;
+  - compte sans groupe et sans activité depuis **1 an** — l'activité est la plus récente de la dernière connexion, du dernier renouvellement de session (`last_sign_in_at` seul ne bouge pas quand la session se renouvelle) et du dernier usage d'un assistant ;
+  - accès d'assistant expiré ; identité anonyme restante (GoTrue n'en crée plus).
+  Ces durées sont celles que promet `docs/privacy.html`.
+- **Supprimer son compte supprime ses accès d'assistant** (`assistant_grants.user_id` en cascade depuis `auth.users`).
 - **L'app survit à une identité effacée** : au démarrage des groupes, `ensureSession` interroge le serveur (`getUser`) et, si l'identité n'existe plus (`identiteDisparue`), repart d'une identité neuve au lieu d'écrire un pseudo pour un compte disparu.
 
 ## Flux typique — rejoindre un groupe par son code

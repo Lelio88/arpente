@@ -77,6 +77,16 @@ create table decided_routes (
 );
 create index decided_routes_group_idx on decided_routes (group_id, decided_at desc);
 
+-- ── Compte requis ────────────────────────────────────────────────────
+-- Vrai seulement pour un jeton de compte (e-mail ou Google). Un jeton sans le
+-- claim is_anonymous est traité comme anonyme : échec fermé. Les groupes sont
+-- réservés aux comptes (politiques « compte requis » plus bas).
+create or replace function compte_requis() returns boolean
+language sql stable set search_path = public as $$
+  select (auth.jwt()->>'is_anonymous')::boolean is false;
+$$;
+grant execute on function compte_requis() to authenticated;
+
 -- ── Code d'invitation + decouverte/adhesion sans exposer toute la table groups ──
 create or replace function generate_join_code() returns text
 language plpgsql as $$
@@ -103,7 +113,7 @@ returns table (id uuid, name text, city text, status text, member_count bigint)
 language sql security definer set search_path = public stable as $$
   select g.id, g.name, g.city, g.status, count(gm.user_id)
   from groups g left join group_members gm on gm.group_id = g.id
-  where g.code = upper(p_code)
+  where g.code = upper(p_code) and compte_requis()
   group by g.id;
 $$;
 
@@ -111,6 +121,9 @@ create or replace function join_group_by_code(p_code text) returns uuid
 language plpgsql security definer set search_path = public as $$
 declare v_group_id uuid;
 begin
+  if not compte_requis() then
+    raise exception 'compte_requis';
+  end if;
   select id into v_group_id from groups where code = upper(p_code);
   if v_group_id is null then
     raise exception 'group_not_found';
@@ -213,6 +226,18 @@ create policy "decided: members select" on decided_routes
 create policy "decided: members insert" on decided_routes
   for insert with check (is_group_member(group_id) and decided_by = auth.uid());
 
+-- Les groupes sont réservés aux comptes. RESTRICTIVE : s'ajoute (ET) aux
+-- politiques ci-dessus, Realtime compris (il évalue la RLS sous les claims de
+-- l'abonné). profiles en fait partie : une identité anonyme ne réserve pas de
+-- pseudo.
+create policy "compte requis" on profiles         as restrictive for all to authenticated using (compte_requis()) with check (compte_requis());
+create policy "compte requis" on groups           as restrictive for all to authenticated using (compte_requis()) with check (compte_requis());
+create policy "compte requis" on group_members    as restrictive for all to authenticated using (compte_requis()) with check (compte_requis());
+create policy "compte requis" on poi_votes        as restrictive for all to authenticated using (compte_requis()) with check (compte_requis());
+create policy "compte requis" on preference_votes as restrictive for all to authenticated using (compte_requis()) with check (compte_requis());
+create policy "compte requis" on visited_pois     as restrictive for all to authenticated using (compte_requis()) with check (compte_requis());
+create policy "compte requis" on decided_routes   as restrictive for all to authenticated using (compte_requis()) with check (compte_requis());
+
 -- RLS + policies ne suffisent pas seules : Postgres exige aussi le GRANT de base
 -- sur le schema/les tables au role authenticated, sinon "permission denied for
 -- schema public" meme avec des policies correctes.
@@ -225,6 +250,48 @@ grant execute on function preview_group_by_code, join_group_by_code, generate_jo
 -- ne change que le statut.
 revoke update on groups from authenticated;
 grant update (status) on groups to authenticated;
+
+-- ── Accès accordés à un assistant IA ────────────────────────────────
+-- L'app les liste et les révoque (ses propres lignes, sans refresh_gen) ; le
+-- service de l'assistant (service/) les crée, les fait tourner et les vérifie
+-- à chaque appel. Supprimer le compte les supprime.
+create table assistant_grants (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null references auth.users(id) on delete cascade,
+  client_name  text not null check (char_length(client_name) between 1 and 80),
+  assistant    text not null check (char_length(assistant) between 1 and 80),
+  created_at   timestamptz not null default now(),
+  last_used_at timestamptz,
+  expires_at   timestamptz not null,
+  refresh_gen  integer not null default 0,
+  check (expires_at > created_at)
+);
+create index assistant_grants_user_idx on assistant_grants (user_id);
+alter table assistant_grants enable row level security;
+
+create policy "grants: own select" on assistant_grants
+  for select to authenticated using (user_id = auth.uid());
+create policy "grants: own revoke" on assistant_grants
+  for delete to authenticated using (user_id = auth.uid());
+grant select (id, client_name, assistant, created_at, last_used_at, expires_at)
+  on assistant_grants to authenticated;
+grant delete on assistant_grants to authenticated;
+
+-- Le rôle du service. NOINHERIT : membre de authenticated sans en hériter
+-- les droits, il ne lit les groupes qu'après « SET LOCAL ROLE authenticated »
+-- sous les claims du membre, et la RLS s'applique alors comme à l'app. Hors
+-- de ce geste, il ne touche qu'à assistant_grants. Son mot de passe est posé
+-- au déploiement, jamais ici.
+do $$ begin
+  if not exists (select 1 from pg_roles where rolname = 'arpente_assistant') then
+    create role arpente_assistant login noinherit;
+  end if;
+end $$;
+grant authenticated to arpente_assistant;
+grant usage on schema public to arpente_assistant;
+grant select, insert, update, delete on assistant_grants to arpente_assistant;
+create policy "grants: service" on assistant_grants
+  for all to arpente_assistant using (true) with check (true);
 
 -- ── Suppression par l'utilisateur ───────────────────────────────────
 -- Efface l'identité anonyme de l'appelant : le profil part en cascade, avec
@@ -243,9 +310,9 @@ grant execute on function delete_my_account() to authenticated;
 
 -- ── Purge nocturne ──────────────────────────────────────────────────
 -- Groupe sans activité depuis 6 mois (sa trace la plus récente : création,
--- adhésion, vote, préférence, coche, décision) ; identité anonyme membre
--- d'aucun groupe depuis 30 jours (last_sign_in_at ne bouge pas au
--- renouvellement de session). Durées annoncées par docs/privacy.html.
+-- adhésion, vote, préférence, coche, décision) ; identité anonyme restante ;
+-- adresse jamais confirmée (24 h) ; compte sans groupe ni activité depuis un
+-- an ; accès d'assistant expiré. Durées annoncées par docs/privacy.html.
 create or replace function purge_inactive() returns void
 language plpgsql security definer set search_path = public as $$
 begin
@@ -259,10 +326,33 @@ begin
     coalesce((select max(decided_at)  from decided_routes   where group_id = g.id), g.created_at)
   ) < now() - interval '6 months';
 
+  -- GoTrue ne crée plus d'identité anonyme : une survivante est un reste.
   delete from auth.users u
-  where u.is_anonymous
-    and coalesce(u.last_sign_in_at, u.created_at) < now() - interval '30 days'
-    and not exists (select 1 from group_members m where m.user_id = u.id);
+  where u.is_anonymous and u.created_at < now() - interval '1 day';
+
+  -- Une adresse saisie puis jamais confirmée par son code : chaque demande
+  -- de code pour une adresse neuve crée une telle ligne.
+  delete from auth.users u
+  where not u.is_anonymous
+    and u.email_confirmed_at is null
+    and u.created_at < now() - interval '24 hours';
+
+  -- Compte sans groupe et sans activité depuis un an. last_sign_in_at ne
+  -- bouge pas au renouvellement de session : les sessions et l'usage d'un
+  -- assistant comptent aussi comme activité.
+  delete from auth.users u
+  where not u.is_anonymous
+    and not exists (select 1 from group_members m where m.user_id = u.id)
+    and greatest(
+      u.created_at,
+      coalesce(u.last_sign_in_at, u.created_at),
+      coalesce((select max(greatest(s.updated_at, s.refreshed_at::timestamptz))
+                from auth.sessions s where s.user_id = u.id), u.created_at),
+      coalesce((select max(g.last_used_at)
+                from assistant_grants g where g.user_id = u.id), u.created_at)
+    ) < now() - interval '1 year';
+
+  delete from assistant_grants where expires_at < now();
 end; $$;
 revoke execute on function purge_inactive() from public, anon, authenticated;
 
