@@ -35,7 +35,7 @@ async function submit() {
 <template>
   <div class="handle-prompt">
     <h2>Choisis ton pseudo</h2>
-    <p class="handle-hint">Il sera visible par les membres de tes groupes. Il est lie a cet appareil.</p>
+    <p class="handle-hint">Il sera visible par les membres de tes groupes, et lié à ton compte.</p>
 
     <input
       v-model="handleInput"

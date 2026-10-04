@@ -3,6 +3,10 @@ $color-primary: #1a1a2e;
 $color-secondary: #16213e;
 $color-accent: #0f3460;
 $color-highlight: #e94560;
+// Variantes lisibles (WCAG AA) du rouge d'accent, pour les écrans du compte :
+// blanc sur #e94560 ne donne que 3,8:1, et #e94560 sur fond sombre 4,4:1.
+$color-highlight-fond: #c41f3d;   // fond de bouton, texte blanc : 5,8:1
+$color-highlight-texte: #ff7a8f;  // texte d'alerte sur fond sombre : 6,8:1
 $color-success: #00ffaa;
 $color-text: #eaeaea;
 $color-text-muted: #8a8a9a;

@@ -76,6 +76,8 @@ Le sens de dépendance descend toujours : une page peut appeler un store et un c
 | `useImageTracking` | Enveloppe MindAR : détection de la cible, matrices `modelView` et `projection` |
 | `usePuzzle` | Machine à états du tracé : `idle → scanning → tracking → success/fail`, tolérance et validation |
 | `useSupabase` | Renvoie le client injecté par le plugin, ou lève si Supabase n'est pas configuré |
+| `useGoogleSignIn` | « Continuer avec Google » par le greffon natif `GoogleSignIn` (Credential Manager) : jeton d'identité et nonce, jamais de script Google dans une page web |
+| `useAccesAssistant` | Accès accordés à un assistant IA (`assistant_grants`, ses propres lignes) et leur révocation |
 | `useBasemap` | Charge l'archive PMTiles d'une ville, en entier et une seule fois, et la garde en cache mémoire |
 
 Le store `vote` porte en plus l'abonnement Realtime : un seul canal ouvert à la fois, fermé au démontage de la page. Sans cette discipline, changer de groupe accumule les abonnements et les événements arrivent en double.
@@ -87,7 +89,7 @@ Le store `vote` porte en plus l'abonnement Realtime : un seul canal ouvert à la
 | `city` | Ville active et sa configuration (`CITIES` : centre, zoom, libellé) | `localStorage` (`arpente-city`) |
 | `route` | Parcours actif, index de l'étape, POI déjà visités | mémoire |
 | `puzzle` | Identifiants des puzzles résolus | `localStorage` |
-| `auth` | Session anonyme Supabase, pseudo (`profiles.handle`), reprise d'une identité effacée côté serveur, « Supprimer mes données » (`delete_my_account`) | Supabase + coffre chiffré (natif) |
+| `auth` | Compte (code par e-mail ou Google), pseudo (`profiles.handle`), reprise d'une session — fermée si le compte a été effacé ou si elle était anonyme —, déconnexion locale, suppression du compte (`delete_my_account`) | Supabase + coffre chiffré (natif) |
 | `group` | Groupes du membre, groupe courant, roster | Supabase |
 | `vote` | Approbations par POI, préférences de chaque membre, canal temps réel | Supabase + WebSocket |
 | `decision` | Dernier parcours arrêté du groupe | Supabase |
@@ -174,12 +176,22 @@ Les deux bugs ont survécu à la relecture et au typage : ils ne vivent ni dans 
 ## Flux typique — rejoindre un groupe par son code
 
 1. L'utilisateur ouvre `/groups/<CODE>`. La route est en `ssr: false` (`routeRules`) : un code créé après le build ne peut pas être pré-rendu.
-2. `authStore.ensureSession()` reprend la session Supabase (après avoir vérifié que le serveur connaît encore l'identité) ou crée une **session anonyme** ; en natif, la session vit dans un **coffre chiffré par le Keystore** (`@aparajita/capacitor-secure-storage`, via `utils/sessionStorage.ts`, qui reprend une fois l'ancienne session rangée en clair dans `@capacitor/preferences`) ; sur le web, dans le stockage par défaut.
+2. `authStore.ensureSession()` reprend la session d'un **compte** (après avoir vérifié que le serveur le connaît encore ; une session anonyme d'une version précédente est fermée). Sans compte, la page affiche `ConnexionPanel` sur place — le code du groupe reste dans l'adresse — puis reprend le chargement. En natif, la session vit dans un **coffre chiffré par le Keystore** (`@aparajita/capacitor-secure-storage`, via `utils/sessionStorage.ts`) ; sur le web, dans le stockage par défaut.
 3. Le profil est chargé ; sans pseudo, l'écran renvoie vers `/groups` pour en choisir un (`profiles` en upsert).
 4. `previewGroupByCode()` appelle la fonction `security definer` : nom, ville, statut et nombre de membres, sans droit de lecture sur `groups`.
 5. `join_group_by_code()` insère l'adhésion avec `auth.uid()`, en `on conflict do nothing`.
 6. Dès l'adhésion, la RLS bascule : `is_group_member()` devient vrai, et le groupe, son roster et ses votes deviennent lisibles.
 7. Le roster s'affiche ; les tables sont publiées dans `supabase_realtime`, l'arrivée d'un membre peut être poussée en direct.
+
+## Flux typique — se connecter
+
+1. `ConnexionPanel` demande une adresse ; le CAPTCHA (Cloudflare Turnstile) tourne dans un cadre vers `<api>/captcha`, une page du service, parce que Turnstile n'accepte que nos noms de domaine et que la WebView vit sous `https://localhost`. Le jeton revient par `postMessage`, accepté de la seule origine de l'API.
+2. `signInWithOtp` (`shouldCreateUser`) part vers `/auth/v1/otp`, que Caddy confie à la **passerelle du service** : même réponse, même délai, que l'adresse ait un compte ou non. GoTrue envoie un code à 6 chiffres (gabarit `deploy/email/connexion.html`, identique pour une adresse neuve ou connue).
+3. `verifyOtp` (`type: email`) ouvre la session ; 5 échecs pour une adresse imposent 15 minutes de pause (passerelle).
+4. Ou bien « Continuer avec Google » (app seulement) : le greffon natif rend un jeton d'identité dont le nonce est haché, puis `signInWithIdToken` — Google et l'adresse e-mail désignent le même compte.
+5. Les messages viennent de `utils/messagesConnexion.ts`, par code d'erreur : aucun ne dit si une adresse a déjà un compte.
+
+`/groups/compte` regroupe l'adresse, le pseudo, la déconnexion (locale), les accès accordés à un assistant IA (avec « Révoquer ») et la suppression du compte.
 
 ## Flux typique — voter dans un groupe
 
@@ -274,7 +286,11 @@ Le projet n'a **ni harnais de tests ni CI**. Les filets :
 |---|---|---|
 | Protomaps (basemap OSM, ODbL) | Fond de carte | Aucun appel au runtime : l'archive PMTiles est extraite au moment du build et pré-cachée. Le service n'est sollicité que par `npm run download-basemap`. |
 | OSRM public (`router.project-osrm.org`) | Itinéraire piéton | Pré-chargé au démarrage, cache de 7 jours ; l'app reste utilisable sans tracé |
-| Supabase | Groupes, pseudo, temps réel | Facultatif : sans configuration, seules les pages `/groups` sont hors service |
+| Supabase | Comptes, groupes, pseudo, temps réel | Facultatif : sans configuration, seules les pages `/groups` sont hors service |
+| Service d'Arpente (`service/`) | Passerelle de connexion, CAPTCHA, assistant IA | Sans lui, plus de connexion par code ; les sessions ouvertes continuent (rafraîchissement direct à GoTrue) |
+| Cloudflare Turnstile | CAPTCHA avant l'envoi d'un code | Le cadre affiche « Réessayer » ; pas de code sans lui |
+| Google (Credential Manager) | Connexion Google dans l'app | Le code par e-mail reste possible |
+| Brevo (SMTP) | Envoi des codes de connexion | Quota quotidien partagé entre plusieurs apps : plafond d'envois dans GoTrue et CAPTCHA |
 | Compilateur MindAR en ligne | Génération des fichiers `.mind` | Étape manuelle assumée : le paquet `canvas` dont dépend mind-ar ne compile pas sous Windows. `scripts/compile-targets.ts` documente la marche à suivre et vérifie la présence des fichiers. |
 
 ## Contenus tiers et attribution

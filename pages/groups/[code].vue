@@ -43,11 +43,19 @@ const poisDuGroupe = computed<Poi[]>(() => {
     }))
 })
 
-onMounted(async () => {
+// Sans compte, la page propose la connexion sur place : le code du groupe
+// reste dans l'adresse, et le chargement reprend une fois connecté.
+const besoinConnexion = ref(false)
+
+async function charger() {
+  isLoading.value = true
+  loadError.value = null
   try {
     if (!authStore.isReady) await authStore.ensureSession()
+    besoinConnexion.value = !authStore.estConnecte
+    if (besoinConnexion.value) return
     if (!authStore.hasHandle) {
-      loadError.value = 'Choisis dabord un pseudo depuis l\'onglet Groupes.'
+      loadError.value = 'Choisis d\'abord un pseudo depuis l\'onglet Groupes.'
       return
     }
     await groupStore.loadGroupByCode(code)
@@ -62,7 +70,9 @@ onMounted(async () => {
   } finally {
     isLoading.value = false
   }
-})
+}
+
+onMounted(charger)
 
 /** Positions des POI de la ville, indexees par slug — l'agregateur en a besoin. */
 const coordonneesParSlug = computed(() =>
@@ -146,6 +156,7 @@ async function rafraichir() {
     <NuxtLink to="/groups" class="back-link">← Retour</NuxtLink>
 
     <p v-if="isLoading" class="group-loading">Chargement...</p>
+    <ConnexionPanel v-else-if="besoinConnexion" @connecte="charger" />
     <p v-else-if="loadError" class="group-error">{{ loadError }}</p>
 
     <template v-else-if="groupStore.currentGroup">

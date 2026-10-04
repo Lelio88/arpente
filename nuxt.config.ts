@@ -142,6 +142,12 @@ export default defineNuxtConfig({
     public: {
       supabaseUrl: '',
       supabaseAnonKey: '',
+      // Client OAuth « Web » de Google : l'audience des jetons que GoTrue
+      // accepte. Vide = pas de bouton Google.
+      googleWebClientId: '',
+      // « false » en développement local sans CAPTCHA ; sinon le widget
+      // Turnstile (page /captcha du service) précède chaque envoi de code.
+      captcha: 'true',
     },
   },
 

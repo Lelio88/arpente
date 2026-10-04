@@ -1,0 +1,8 @@
+# Arpente — pages publiques du projet.
+# Moteurs de recherche et lectures faites à la demande d'un utilisateur
+# (assistants IA) sont admis. L'autorisation ou le refus de l'entraînement
+# des IA est une décision du projet, à consigner dans son CLAUDE.md
+# (bonnes-pratiques A8).
+
+User-agent: *
+Allow: /

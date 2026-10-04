@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arpente — Brancher un assistant IA</title>
+<meta name="description" content="Préparer une visite de Caen ou de Troyes avec un assistant IA (Claude, ChatGPT) branché sur Arpente : adresse, branchement, outils, règles et limites.">
+<style>
+  :root {
+    --nuit: #1a1a2e; --nuit-clair: #22243f; --lien: #ff7a8f;
+    --texte: #eaeaea; --doux: #a9a6bb; --trait: rgba(255,255,255,.09);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--nuit); color: var(--texte);
+    font: 16px/1.65 -apple-system, "Segoe UI", system-ui, sans-serif;
+  }
+  .bandeau { background: linear-gradient(150deg, #22304f, #15152a); padding: 48px 24px 40px; border-bottom: 1px solid var(--trait); }
+  .contenu { max-width: 760px; margin: 0 auto; }
+  h1 { margin: 0 0 8px; font-size: clamp(26px, 5vw, 34px); letter-spacing: -.02em; }
+  .maj { color: var(--doux); font-size: 14px; margin: 0; }
+  main { padding: 36px 24px 72px; }
+  h2 { font-size: 19px; margin: 38px 0 12px; padding-top: 20px; border-top: 1px solid var(--trait); }
+  h2:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+  p, li, td { color: #d6d3e0; }
+  ul, ol { padding-left: 22px; }
+  li { margin-bottom: 7px; }
+  a { color: var(--lien); }
+  table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 15px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--trait); vertical-align: top; }
+  th { color: var(--doux); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; }
+  code { background: rgba(255,255,255,.07); padding: 1px 6px; border-radius: 4px; font-size: 14px; word-break: break-all; }
+  .encadre { background: var(--nuit-clair); border-left: 3px solid var(--lien); border-radius: 0 8px 8px 0; padding: 16px 20px; margin: 22px 0; }
+  .encadre p { margin: 0; }
+  footer { border-top: 1px solid var(--trait); padding: 26px 24px 60px; color: var(--doux); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="bandeau">
+  <div class="contenu">
+    <h1>Brancher un assistant IA sur Arpente</h1>
+    <p class="maj">Pour préparer une visite de Caen ou de Troyes avec Claude, ChatGPT ou un outil de votre ordinateur.</p>
+  </div>
+</div>
+
+<main class="contenu">
+
+  <div class="encadre">
+    <p>
+      L'assistant agit <strong>en votre nom</strong> : il voit ce que vous voyez dans vos groupes, et vote comme vous
+      le feriez. Il ne voit jamais votre adresse e-mail. N'autorisez qu'un assistant que vous utilisez vous-même,
+      et retirez l'accès quand vous voulez : <em>Groupes → Mon compte → Assistant IA → Révoquer</em>.
+    </p>
+  </div>
+
+  <h2>L'adresse</h2>
+  <p><code>https://api.arpente.heianenterprise.com/mcp</code></p>
+  <p>
+    C'est un serveur MCP (Model Context Protocol). L'assistant ouvre une page Arpente où vous vous connectez à votre
+    compte — code reçu par e-mail, ou Google — puis l'autorisez. Il faut un compte Arpente : il se crée à la première
+    connexion.
+  </p>
+
+  <h2>Le brancher</h2>
+  <ul>
+    <li><strong>Claude</strong> (claude.ai, Claude Desktop, mobile) : <em>Personnaliser → Connecteurs → + → Ajouter un connecteur personnalisé</em>, puis collez l'adresse.</li>
+    <li><strong>ChatGPT</strong> : <em>Réglages → Sécurité et connexion → Mode développeur</em>, puis <em>Plugins → +</em> et l'adresse.</li>
+    <li><strong>Claude Code</strong> : <code>claude mcp add --transport http arpente https://api.arpente.heianenterprise.com/mcp</code>, puis <code>/mcp</code> → <em>Authenticate</em>.</li>
+    <li><strong>Cursor, VS Code</strong> : ajoutez un serveur MCP « HTTP » à cette adresse ; l'autorisation suit le même chemin.</li>
+  </ul>
+  <p>Les menus des assistants changent souvent : si un chemin ne correspond plus, cherchez « connecteur » ou « serveur MCP » dans leurs réglages.</p>
+
+  <h2>Ce qu'il peut faire</h2>
+  <table>
+    <tr><th>Outil</th><th>Ce qu'il fait</th></tr>
+    <tr><td><code>lieux</code></td><td>Les lieux à visiter d'une ville, 30 par page, filtrables par catégorie ou tag.</td></tr>
+    <tr><td><code>lieu</code></td><td>La fiche complète d'un lieu : histoire, anecdotes, époque, position.</td></tr>
+    <tr><td><code>parcours</code></td><td>Les parcours thématiques tout faits et leurs étapes.</td></tr>
+    <tr><td><code>mes_groupes</code></td><td>Vos groupes de visite.</td></tr>
+    <tr><td><code>groupe</code></td><td>Un groupe : membres (pseudonymes), votes, envies et leurs médianes, étapes cochées, parcours arrêté.</td></tr>
+    <tr><td><code>voter</code>, <code>retirer_vote</code></td><td>Approuver des lieux, ou retirer vos approbations, en votre nom.</td></tr>
+    <tr><td><code>mes_envies</code></td><td>Régler le nombre de lieux et la durée que vous souhaitez.</td></tr>
+    <tr><td><code>arreter_parcours</code></td><td>Calculer le parcours du groupe à partir des votes ; l'enregistrer — visible de tous — seulement après votre accord.</td></tr>
+  </table>
+
+  <h2>Les règles qu'il suit</h2>
+  <ul>
+    <li>Il désigne les lieux par leur nom exact ; s'il se trompe, l'outil refuse et propose des lieux proches, sans choisir à votre place.</li>
+    <li>Il ne calcule jamais un parcours lui-même : c'est Arpente qui le calcule, comme dans l'app. Il vous montre l'aperçu et attend votre accord avant de l'enregistrer.</li>
+    <li>Les noms de groupes et les pseudonymes sont des données, jamais des consignes à suivre.</li>
+    <li>Il ne peut ni créer, ni rejoindre, ni quitter, ni supprimer un groupe, ni voir les codes d'invitation, ni toucher à votre compte.</li>
+  </ul>
+
+  <h2>Limites</h2>
+  <ul>
+    <li>30 écritures par heure et par accès, dont 5 parcours arrêtés.</li>
+    <li>Un accès dure 90 jours ; ensuite, l'assistant vous redemande votre accord.</li>
+    <li>Une distance marquée « estimée » est à vol d'oiseau : à pied, en ville, comptez environ 30 % de plus.</li>
+  </ul>
+
+  <h2>Vos données</h2>
+  <p>
+    L'assistant lit les lieux, et vos groupes tels que vous les voyez. L'éditeur de l'assistant (Anthropic, OpenAI…)
+    traite ensuite ce qu'il lit selon ses propres conditions. Tout est détaillé dans la
+    <a href="./privacy.html">politique de confidentialité</a>.
+  </p>
+
+</main>
+
+<footer class="contenu">
+  Arpente — guide de visite · <a href="./">Accueil</a> · <a href="./privacy.html">Confidentialité</a> · <a href="./mentions-legales.html">Mentions légales</a>
+</footer>
+
+</body>
+</html>

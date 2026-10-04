@@ -86,6 +86,22 @@ Experience interactive au Chateau de Caen inspiree du jeu *The Witness* :
 - Tracking tactile (`touchstart`, `touchmove`, `touchend`) avec calcul de deviation par rapport au chemin attendu
 - Chaque puzzle est defini par : coordonnees du point de depart, chemin attendu (serie de points), tolerance, et metadata
 
+### 5. Groupes et assistant IA
+
+Plusieurs visiteurs préparent un parcours ensemble : chacun approuve des lieux et règle ses envies (nombre de lieux, durée), puis le groupe arrête un parcours calculé à partir des votes. Les groupes demandent un compte — un code à 6 chiffres reçu par e-mail, ou Google dans l'app ; la visite elle-même n'en demande aucun.
+
+**Brancher un assistant IA** (Claude, ChatGPT, Claude Code…) pour préparer la visite : il lit les lieux et vos groupes, vote et règle vos envies en votre nom, et arrête le parcours après votre accord.
+
+1. Dans l'app, *Groupes → Mon compte → Assistant IA* : copiez l'adresse `https://api.arpente.heianenterprise.com/mcp`.
+2. Dans l'assistant :
+   - **claude.ai** (web, Claude Desktop, mobile) : *Personnaliser → Connecteurs → + → Ajouter un connecteur personnalisé* ;
+   - **ChatGPT** : *Réglages → Sécurité et connexion → Mode développeur*, puis *Plugins → +* ;
+   - **Claude Code** : `claude mcp add --transport http arpente <adresse>`, puis `/mcp` → *Authenticate*.
+3. L'assistant ouvre une page Arpente : connectez-vous à votre compte, puis *Autoriser*.
+4. Pour retirer l'accès : *Mon compte → Assistant IA → Révoquer*.
+
+Les menus des assistants changent souvent ; la page [assistant.html](https://arpente.heianenterprise.com/assistant.html) tient les gestes à jour, avec la liste des outils. Fonctionnement interne : [`docs/mcp-architecture.md`](docs/mcp-architecture.md).
+
 ## Architecture du projet
 
 ```
@@ -121,13 +137,14 @@ Experience interactive au Chateau de Caen inspiree du jeu *The Witness* :
 │   ├── poi/[slug].vue            # Fiche complète d'un POI
 │   ├── tips/                     # Liste et détail des anecdotes
 │   ├── ar/                       # Écran d'intro AR et puzzle individuel
-│   └── groups/                   # Groupes et roster (rendu client, ssr: false)
+│   └── groups/                   # Groupes, roster et page Compte (rendu client, ssr: false)
 ├── plugins/
 │   ├── supabase.client.ts        # Client Supabase — non créé si la config est absente
 │   └── precache-routes.client.ts # Pré-charge les itinéraires OSRM pour l'usage hors ligne
 ├── scripts/                      # download-basemap · check-basemap · compile-targets
 ├── stores/                       # city · route · puzzle · auth · group (Pinia)
 ├── supabase/schema.sql           # Tables, RLS, fonctions security definer
+├── service/                      # Serveur MCP de l'assistant IA, OAuth, passerelle de connexion (Node)
 ├── types/index.ts                # Types du domaine partagés
 ├── utils/                        # geo · slug · arTransform · voteAggregation (fonctions pures)
 ├── public/basemaps/              # Fond de carte offline — créé par npm run download-basemap, non versionné

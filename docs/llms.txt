@@ -1,0 +1,13 @@
+# Arpente
+
+> Guide de visite hors ligne de Caen et de Troyes (application Android) : carte, parcours thématiques, fiches historiques, et groupes de visite pour décider d'un parcours à plusieurs.
+
+## Assistant IA
+
+- [Brancher un assistant IA](https://arpente.heianenterprise.com/assistant.html) : serveur MCP `https://api.arpente.heianenterprise.com/mcp` (OAuth 2.1 avec PKCE, inscription dynamique), outils, règles et limites.
+
+## Pages
+
+- [Accueil](https://arpente.heianenterprise.com/)
+- [Politique de confidentialité](https://arpente.heianenterprise.com/privacy.html)
+- [Mentions légales](https://arpente.heianenterprise.com/mentions-legales.html)

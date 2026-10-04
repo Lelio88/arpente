@@ -73,7 +73,7 @@
       <span>Arpente</span>
     </div>
     <h1>Politique de confidentialité</h1>
-    <p class="maj">Application <code>app.arpente</code> · Dernière mise à jour : 30 septembre 2026</p>
+    <p class="maj">Application <code>app.arpente</code> · Dernière mise à jour : 4 octobre 2026</p>
   </div>
 </div>
 
@@ -81,9 +81,10 @@
 
   <div class="encadre">
     <p>
-      Arpente fonctionne sans compte et sans publicité. <strong>Votre position ne quitte
+      Arpente se visite sans compte et sans publicité. <strong>Votre position ne quitte
       jamais votre téléphone</strong>, sauf pour calculer un itinéraire à pied, et rien
-      n'est enregistré sur un serveur tant que vous n'utilisez pas la fonction « Groupes ».
+      n'est enregistré sur un serveur tant que vous n'utilisez pas la fonction « Groupes »,
+      la seule qui demande un compte.
     </p>
   </div>
 
@@ -97,7 +98,7 @@
 
   <h2>Ce que l'application ne fait pas</h2>
   <ul>
-    <li>Aucun compte à créer : ni adresse e-mail, ni mot de passe, ni numéro de téléphone.</li>
+    <li>Aucun compte pour visiter : seule la fonction « Groupes » en demande un, sans mot de passe ni numéro de téléphone.</li>
     <li>Aucune publicité, aucun identifiant publicitaire, aucun traceur.</li>
     <li>Aucune mesure d'audience ni outil d'analyse comportementale.</li>
     <li>Aucune revente ni partage de données à des fins commerciales.</li>
@@ -127,10 +128,28 @@
       <td>Selon les règles du service OSRM. Le tracé est gardé une semaine sur votre téléphone, pour ne pas redemander le même trajet.</td>
     </tr>
     <tr>
-      <td><strong>Fonction « Groupes »</strong>, uniquement si vous l'utilisez</td>
-      <td>Une identité anonyme (un identifiant aléatoire, sans e-mail ni mot de passe) ; le pseudonyme que vous choisissez, visible des membres de vos groupes ; les groupes rejoints et leur code ; vos votes, le nombre d'étapes et la durée souhaités ; les étapes cochées ; le parcours retenu.</td>
+      <td><strong>Compte et fonction « Groupes »</strong>, uniquement si vous l'utilisez</td>
+      <td>Votre adresse e-mail — ou, si vous vous connectez avec Google, l'adresse, le nom et la photo que Google transmet ; le pseudonyme que vous choisissez, visible des membres de vos groupes ; les groupes rejoints et leur code ; vos votes, le nombre d'étapes et la durée souhaités ; les étapes cochées ; le parcours retenu. Votre adresse n'est montrée à personne, pas même aux membres de vos groupes.</td>
       <td>Exécution du service que vous demandez (préparer une visite à plusieurs)</td>
-      <td>Un groupe est effacé après <strong>6 mois sans activité</strong>. Une identité anonyme qui n'appartient à aucun groupe est effacée après <strong>30 jours</strong>. Vous pouvez tout effacer vous-même avant (voir plus bas).</td>
+      <td>Un groupe est effacé après <strong>6 mois sans activité</strong>. Un compte qui n'appartient à aucun groupe et ne sert plus est effacé après <strong>1 an</strong> ; une adresse saisie mais jamais confirmée par son code, après <strong>24 heures</strong>. Vous pouvez tout effacer vous-même avant (voir plus bas).</td>
+    </tr>
+    <tr>
+      <td><strong>Code de connexion</strong>, à chaque connexion par e-mail</td>
+      <td>Votre adresse e-mail et le message qui porte le code, envoyés par le service d'e-mails <a href="https://www.brevo.com/fr/legal/privacypolicy/" target="_blank" rel="noopener">Brevo</a> (Sendinblue SAS, France).</td>
+      <td>Exécution du service que vous demandez (vous connecter)</td>
+      <td>Le code expire au bout de 15 minutes ; Brevo garde ses journaux d'envoi selon ses propres règles.</td>
+    </tr>
+    <tr>
+      <td><strong>Vérification anti-robot</strong>, avant l'envoi d'un code</td>
+      <td>Votre adresse IP et des caractéristiques techniques de votre navigateur, examinées par <a href="https://www.cloudflare.com/fr-fr/privacypolicy/" target="_blank" rel="noopener">Cloudflare Turnstile</a> (Cloudflare, Inc., États-Unis, transfert encadré par le Data Privacy Framework). Le widget n'est chargé qu'à ce moment-là.</td>
+      <td>Intérêt légitime : empêcher l'envoi d'e-mails en masse à des adresses qui n'ont rien demandé</td>
+      <td>Selon les règles de Cloudflare.</td>
+    </tr>
+    <tr>
+      <td><strong>Assistant IA</strong>, uniquement si vous l'autorisez</td>
+      <td>L'assistant que vous choisissez — Claude (Anthropic), ChatGPT (OpenAI), ou un outil installé sur votre ordinateur — lit les lieux et les parcours, et vos groupes : pseudonymes des membres, votes, envies, étapes cochées, parcours retenu. En votre nom, il peut voter, régler vos envies et arrêter le parcours d'un groupe après votre accord. Il ne reçoit jamais votre adresse e-mail. Arpente garde la trace de l'accès (nom de l'assistant, dates d'accord et de dernier usage).</td>
+      <td>Exécution du service que vous demandez ; l'éditeur de l'assistant traite ensuite ce qu'il lit selon ses propres conditions</td>
+      <td>Jusqu'à ce que vous retiriez l'accès, et au plus <strong>90 jours</strong>.</td>
     </tr>
     <tr>
       <td><strong>Journaux techniques</strong> du serveur des groupes</td>
@@ -147,22 +166,25 @@
   <p>
     Les données des groupes sont hébergées sur un serveur que nous administrons, loué à
     Hetzner Online GmbH et situé en Allemagne, dans l'Union européenne. Elles ne sont
-    accessibles qu'aux membres de votre groupe et ne sont transmises à aucun tiers.
-    Sur votre téléphone, l'accès à votre identité anonyme est rangé dans un stockage chiffré.
+    accessibles qu'aux membres de votre groupe, et ne sont transmises à aucun tiers autre que
+    ceux du tableau — et à l'assistant IA qu'un membre choisit d'autoriser : celui-ci lit alors
+    les pseudonymes et les votes de ses groupes, comme le membre lui-même les voit.
+    Sur votre téléphone, votre session est rangée dans un stockage chiffré.
   </p>
 
   <h2 id="suppression">Effacer vos données</h2>
   <ul>
-    <li><strong>Tout effacer</strong> : dans l'application, <em>Groupes → Tes données → Supprimer mes données</em>. Votre identité anonyme, votre pseudonyme, vos adhésions et vos votes sont effacés immédiatement. Les groupes que vous avez créés restent aux autres membres.</li>
+    <li><strong>Supprimer votre compte</strong> : dans l'application, <em>Groupes → Mon compte → Supprimer mon compte</em>. Votre compte, votre pseudonyme, vos adhésions, vos votes et les accès d'assistant sont effacés immédiatement. Les groupes que vous avez créés restent aux autres membres.</li>
+    <li><strong>Sans l'application</strong> : sur la page <a href="https://api.arpente.heianenterprise.com/suppression-compte">api.arpente.heianenterprise.com/suppression-compte</a>, connectez-vous avec le code reçu par e-mail (ou Google), puis confirmez — l'effet est le même. Vous pouvez aussi écrire à <a href="mailto:heianenterpriseyt@gmail.com">heianenterpriseyt@gmail.com</a> depuis l'adresse du compte ; la suppression est alors faite sous 30 jours.</li>
+    <li><strong>Retirer l'accès d'un assistant IA</strong> : <em>Groupes → Mon compte → Assistant IA → Révoquer</em>. L'assistant perd l'accès aussitôt.</li>
     <li><strong>Supprimer un groupe</strong> que vous avez créé : depuis la page du groupe, <em>Supprimer le groupe</em>. Ses votes, sa progression et ses parcours sont effacés pour tous.</li>
-    <li><strong>Sans l'application</strong> : écrivez à <a href="mailto:heianenterpriseyt@gmail.com">heianenterpriseyt@gmail.com</a> en indiquant votre pseudonyme et le code du groupe, seuls éléments qui permettent de retrouver vos données. La suppression est faite sous 30 jours.</li>
   </ul>
 
   <h2>Autorisations demandées</h2>
   <table>
     <tr><th>Autorisation</th><th>Pourquoi</th></tr>
     <tr><td>Position (précise et approximative)</td><td>Cœur de l'application : vous situer et déclencher les fiches à proximité. Refusable — la carte et les parcours restent consultables.</td></tr>
-    <tr><td>Accès au réseau</td><td>Calcul d'itinéraire et fonction « Groupes ». Le reste fonctionne hors ligne.</td></tr>
+    <tr><td>Accès au réseau</td><td>Calcul d'itinéraire, connexion et fonction « Groupes ». Le reste fonctionne hors ligne.</td></tr>
   </table>
   <p>
     L'application ne demande ni l'appareil photo, ni l'agenda. L'ajout d'un
@@ -174,7 +196,7 @@
   <p>
     Vous pouvez demander l'accès à vos données, leur rectification, leur effacement, leur
     portabilité, la limitation d'un traitement, et vous opposer à ceux fondés sur l'intérêt
-    légitime. Le plus simple reste d'utiliser <em>Supprimer mes données</em> ; sinon, une
+    légitime. Le plus simple reste d'utiliser <em>Supprimer mon compte</em> ; sinon, une
     demande par courriel suffit :
     <a href="mailto:heianenterpriseyt@gmail.com">heianenterpriseyt@gmail.com</a>
     (réponse sous un mois).
