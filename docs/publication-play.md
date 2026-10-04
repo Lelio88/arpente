@@ -167,7 +167,9 @@ seulement.
 - **URL de suppression du compte** (obligatoire dès qu'on crée des comptes) →
   <https://api.arpente.heianenterprise.com/suppression-compte> : connexion par code ou
   Google, puis confirmation. Dans l'app : *Groupes → Mon compte → Supprimer mon compte*.
-- Suppression d'une partie des données sans supprimer le compte (facultatif) → **Non**.
+- Suppression d'une partie des données sans supprimer le compte (facultatif) → **Oui** :
+  dans l'app, retirer ses votes, supprimer un groupe qu'on a créé, révoquer un assistant ;
+  et toute demande d'effacement par courriel (`privacy.html`, « Vos droits »).
 - **Pas** l'option « supprimées automatiquement sous 90 jours » : les purges existent,
   mais à 6 mois pour un groupe et 1 an pour un compte inactif.
 - Cette section s'envoie aussi par l'API (`applications.dataSafety`, CSV du modèle de
