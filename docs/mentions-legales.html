@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="tdm-reservation" content="1">
 <title>Arpente — Mentions légales</title>
 <meta name="description" content="Mentions légales de l'application Arpente : éditeur et hébergeurs.">
 <style>
   :root {
-    --nuit: #1a1a2e; --nuit-clair: #22243f; --corail: #e94560;
+    --nuit: #1a1a2e; --nuit-clair: #22243f; --corail: #e94560; --lien: #ff7a8f;
     --texte: #eaeaea; --doux: #9a97ad; --trait: rgba(255,255,255,.09);
   }
   * { box-sizing: border-box; }
@@ -34,7 +35,7 @@
   p, li { color: #d6d3e0; }
   ul { padding-left: 20px; }
   li { margin-bottom: 7px; }
-  a { color: var(--corail); }
+  a { color: var(--lien); } /* #e94560 ne fait que 4,4:1 sur la nuit */
   .encadre {
     background: var(--nuit-clair); border-left: 3px solid var(--corail);
     border-radius: 0 8px 8px 0; padding: 16px 20px; margin: 22px 0;
@@ -109,7 +110,7 @@
 </main>
 
 <footer class="contenu">
-  Arpente — guide de visite · <a href="./">Accueil</a> · <a href="./privacy.html">Politique de confidentialité</a> · Contact :
+  Arpente — guide de visite · <a href="./">Accueil</a> · <a href="./privacy.html">Politique de confidentialité</a> · <a href="./cgu.html">Conditions d'utilisation</a> · Contact :
   <a href="mailto:heianenterpriseyt@gmail.com">heianenterpriseyt@gmail.com</a>
 </footer>
 

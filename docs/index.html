@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="tdm-reservation" content="1">
 <title>Arpente — guide de visite</title>
 <meta name="description" content="Un guide de visite qui tient dans la poche et se passe de connexion : carte hors ligne, parcours thématiques et fiches historiques.">
 <style>
   :root {
-    --nuit: #1a1a2e; --nuit-clair: #22243f; --corail: #e94560;
+    --nuit: #1a1a2e; --nuit-clair: #22243f; --corail: #e94560; --lien: #ff7a8f;
     --texte: #eaeaea; --doux: #9a97ad; --trait: rgba(255,255,255,.09);
   }
   * { box-sizing: border-box; }
@@ -30,7 +31,7 @@
   p, li { color: #d6d3e0; }
   ul { padding-left: 20px; }
   li { margin-bottom: 8px; }
-  a { color: var(--corail); }
+  a { color: var(--lien); } /* #e94560 ne fait que 4,4:1 sur la nuit */
   .cartes { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin: 22px 0 6px; }
   .carte { background: var(--nuit-clair); border-radius: 10px; padding: 18px 20px; }
   .carte h3 { margin: 0 0 6px; font-size: 15px; }
@@ -112,7 +113,7 @@
 </main>
 
 <footer class="contenu">
-  Arpente · <a href="./privacy.html">Politique de confidentialité</a> · <a href="./mentions-legales.html">Mentions légales</a>
+  Arpente · <a href="./privacy.html">Politique de confidentialité</a> · <a href="./mentions-legales.html">Mentions légales</a> · <a href="./cgu.html">Conditions d'utilisation</a>
 </footer>
 
 </body>
