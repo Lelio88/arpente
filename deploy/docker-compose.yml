@@ -1,0 +1,182 @@
+# Backend Supabase d'Arpente — stack réduite, auto-hébergée.
+#
+# CE QUI N'EST PAS LÀ, ET POURQUOI
+#   - Kong (la passerelle du Supabase officiel) : son rôle est de router
+#     /auth/v1, /rest/v1, /realtime/v1 et de valider l'en-tête apikey. Caddy est
+#     déjà sur cette machine et sait router ; ajouter Kong coûterait ~250 Mo de
+#     RAM pour refaire ce travail une seconde fois.
+#   - Storage, Edge Functions, Studio, Analytics : hors du besoin.
+#
+# CE FICHIER EST VERSIONNÉ (deploy/docker-compose.yml du dépôt) et se joue
+# AVEC son ajout, deploy/docker-compose.comptes.yml (comptes par code e-mail
+# et Google, service de l'assistant IA) :
+#   docker compose -f docker-compose.yml -f docker-compose.comptes.yml up -d
+# Les réglages de GoTrue ci-dessous sont ceux d'avant les comptes ; l'ajout
+# les complète ou les remplace. deploy/deploy-service.sh installe les deux.
+#
+# LES LIMITES MÉMOIRE NE SONT PAS DÉCORATIVES
+#   Cette machine génère le quiz quotidien de CulturiaQuests à minuit : Ollama y
+#   monte jusqu'à son plafond de 5,5 Go pendant environ deux minutes. Sans
+#   `mem_limit` ici, ces conteneurs entreraient en concurrence avec ce créneau
+#   et l'arbitre serait l'OOM-killer du noyau. Le total plafonné ci-dessous
+#   (1 Go) laisse la pointe passer.
+#
+# LE RÉSEAU EST FERMÉ
+#   auth et rest publient sur 127.0.0.1 UNIQUEMENT, jamais sur 0.0.0.0 : Caddy
+#   tourne sur l'hôte (systemd, hors Docker) et les joint par la loopback. Viser
+#   l'IP du conteneur marcherait aujourd'hui et casserait au premier
+#   redémarrage, Docker les réattribuant librement.
+#   Postgres, lui, ne publie rien du tout : il n'est joignable que depuis le
+#   réseau `arpente`.
+
+name: arpente
+
+services:
+  db:
+    image: supabase/postgres:15.8.1.060
+    container_name: arpente_db
+    restart: unless-stopped
+    mem_limit: 512m
+    memswap_limit: 768m
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXP: 3600
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      # UN FICHIER, jamais le dossier : /docker-entrypoint-initdb.d/migrations/
+      # contient les migrations de l'image, qui CREENT les roles internes.
+      # Monter un dossier par-dessus les masquerait et les roles n'existeraient
+      # jamais. Le prefixe zzz garantit le passage en dernier, apres eux.
+      #
+      # Pourquoi ici et pas ailleurs : ni la racine de docker-entrypoint-initdb.d/
+      # ni init-scripts/ ne conviennent, tous deux passant AVANT la creation des
+      # roles. Et c'est la seule fenetre disponible : le role postgres de cette
+      # image n'est pas superuser, donc il ne pourra plus toucher a un role
+      # reserve comme supabase_auth_admin une fois le cluster demarre.
+      - ./init/zzz-roles.sql:/docker-entrypoint-initdb.d/migrations/zzz-roles.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -h 127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks: [arpente]
+
+  # GoTrue : l'authentification. Socle d'avant les comptes (sessions anonymes
+  # seulement) ; la connexion par code e-mail, Google, le CAPTCHA et le SMTP
+  # viennent de docker-compose.comptes.yml.
+  auth:
+    image: supabase/gotrue:v2.177.0
+    container_name: arpente_auth
+    restart: unless-stopped
+    mem_limit: 192m
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      PORT: 9999
+      API_EXTERNAL_URL: https://api.arpente.heianenterprise.com
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      GOTRUE_SITE_URL: https://api.arpente.heianenterprise.com
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_DISABLE_SIGNUP: "false"
+      # Le cœur du modèle d'identité d'Arpente : un pseudo, pas de mot de passe.
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: "true"
+      # Arpente n utilise que la connexion anonyme : e-mail et téléphone fermés
+      # (l e-mail était ouvert, en confirmation automatique).
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "false"
+      GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+      GOTRUE_RATE_LIMIT_ANONYMOUS_USERS: "30"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      GOTRUE_LOG_LEVEL: info
+    ports:
+      - "127.0.0.1:9999:9999"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: [arpente]
+
+  # PostgREST : l'API REST sur le schéma public. Il se connecte en tant que
+  # `authenticator`, rôle sans privilège propre qui n'a que le droit d'endosser
+  # anon / authenticated / service_role selon le JWT présenté. C'est ce qui rend
+  # la RLS effective : sans JWT valide, la requête reste `anon`.
+  rest:
+    image: postgrest/postgrest:v12.2.3
+    container_name: arpente_rest
+    restart: unless-stopped
+    mem_limit: 256m
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
+      PGRST_APP_SETTINGS_JWT_EXP: 3600
+    ports:
+      # 3011 et non 3000 : nuxt_frontend_prod (CulturiaQuests) tient deja 3000.
+      - "127.0.0.1:3011:3000"
+    networks: [arpente]
+
+  # Realtime : diffuse les changements de la base aux clients connectes, par
+  # WebSocket. Arpente s'en sert pour le decompte des votes en direct — voir un
+  # membre approuver un POI sans recharger.
+  #
+  # Il lit le WAL de Postgres via une publication logique (`supabase_realtime`,
+  # alimentee par schema.sql) et rediffuse aux abonnes, en appliquant les memes
+  # politiques RLS que PostgREST : un non-membre ne recoit rien.
+  #
+  # DB_USER est `supabase_admin` et non `postgres` : la lecture du WAL exige
+  # l'attribut REPLICATION, que seul le superuser porte ici.
+  #
+  # SEED_SELF_HOST cree le tenant unique au premier demarrage. En mono-tenant,
+  # le nom vient de APP_NAME — c'est aussi celui que le client devra viser.
+  realtime:
+    image: supabase/realtime:v2.34.47
+    container_name: arpente_realtime
+    restart: unless-stopped
+    mem_limit: 384m
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: supabase_admin
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: postgres
+      DB_AFTER_CONNECT_QUERY: SET search_path TO _realtime
+      DB_ENC_KEY: ${DB_ENC_KEY}
+      API_JWT_SECRET: ${JWT_SECRET}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      ERL_AFLAGS: -proto_dist inet_tcp
+      DNS_NODES: "''"
+      RLIMIT_NOFILE: "10000"
+      APP_NAME: realtime
+      SEED_SELF_HOST: "true"
+      RUN_JANITOR: "true"
+    ports:
+      - "127.0.0.1:4000:4000"
+    networks: [arpente]
+
+volumes:
+  db-data:
+
+networks:
+  arpente:
+    name: arpente

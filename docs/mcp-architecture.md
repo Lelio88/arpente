@@ -110,7 +110,7 @@ Côté base : `supabase/tests/conformite.test.sql` (comptes requis, accès d'ass
 
 ## Mise en ligne
 
-Le compose de production reste sur le serveur (`/opt/arpente/docker-compose.yml`) ; ce dépôt versionne ce qui s'y **ajoute** : `deploy/docker-compose.comptes.yml` (GoTrue v2.195 et ses réglages de connexion, le service), les variables de `deploy/comptes.env.example`, et les gabarits `deploy/email/`. `sh deploy/deploy-service.sh <serveur>` construit l'image sur le poste au commit courant, l'envoie, installe ces fichiers et recrée `auth` et `service`.
+Le compose de production est versionné (`deploy/docker-compose.yml`, le socle Supabase), avec son **ajout** `deploy/docker-compose.comptes.yml` (GoTrue v2.195 et ses réglages de connexion, le service), les variables de `deploy/production.env.example` et les gabarits `deploy/email/`. `sh deploy/deploy-service.sh <serveur>` construit l'image sur le poste au commit courant, l'envoie, installe ces fichiers dans `/opt/arpente` et recrée `auth` et `service`.
 
 Quatre interrupteurs du `.env` du serveur ouvrent les étapes, **dans cet ordre** — chacune annoncée, suivie d'un essai de fumée :
 

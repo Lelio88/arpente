@@ -20,7 +20,7 @@ Topologie rapide — le dépôt **est** l'application, sans sous-dossier interm�
 - `supabase/` — `schema.sql` (état complet : schéma, RLS, fonctions, purge), `migrations/` (ce qui a été joué sur la base en service), `tests/conformite.test.sql` (RLS et purge, sur base jetable)
 - `scripts/` — outillage hors-app : extraction du fond de carte, contrôle avant build, compilation des cibles AR, synthèse du jingle d'ouverture, publication sur Play (`publish_play.py`, commun aux dépôts du conteneur)
 - `service/` — service Node : serveur MCP de l'assistant IA, son serveur OAuth, passerelle `/otp` et `/verify` devant GoTrue, pages d'accord et de suppression du compte ; réutilise `utils/` et compile `content/` au build de son image
-- `deploy/` — vhost Caddy de l'API (`caddy/arpente.caddy`, avec la liste d'admission devant GoTrue), ajout au compose de production pour les comptes et le service (`docker-compose.comptes.yml`), gabarits d'e-mail : **versionnés**, faute de quoi une réinstallation du serveur les perdrait ; installés par `deploy-caddy.sh` et `deploy-service.sh`
+- `deploy/` — vhost Caddy de l'API (`caddy/arpente.caddy`, avec la liste d'admission devant GoTrue), compose de production (`docker-compose.yml`) et son ajout pour les comptes et le service (`docker-compose.comptes.yml`), gabarits d'e-mail : **versionnés**, faute de quoi une réinstallation du serveur les perdrait ; installés par `deploy-caddy.sh` et `deploy-service.sh`
 - `android/` — projet natif Capacitor, **versionné** : il porte les permissions, le `versionCode`, la signature et les icônes, que `npx cap add` ne saurait pas régénérer
 
 ## III. Pile Technologique
