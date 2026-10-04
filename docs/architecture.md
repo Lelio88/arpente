@@ -2,9 +2,9 @@
 
 ## Vue d'ensemble
 
-Arpente est une application Nuxt **générée en statique** puis encapsulée par Capacitor. Il n'existe aucun serveur applicatif : le contenu éditorial (points d'intérêt, parcours, anecdotes, puzzles) est compilé dans le bundle par Nuxt Content, le fond de carte est une archive vectorielle embarquée dans le build, et la progression individuelle vit en `localStorage`. Cette contrainte est délibérée — l'app doit fonctionner **au milieu d'une rue, sans réseau**.
+Arpente est une application Nuxt **générée en statique** puis encapsulée par Capacitor. L'app n'a besoin d'aucun serveur pour visiter : le contenu éditorial (points d'intérêt, parcours, anecdotes, puzzles) est compilé dans le bundle par Nuxt Content, le fond de carte est une archive vectorielle embarquée dans le build, et la progression individuelle vit en `localStorage`. Cette contrainte est délibérée — l'app doit fonctionner **au milieu d'une rue, sans réseau**.
 
-Une seule brique est en ligne, et elle est **facultative** : Supabase porte les groupes de visite (session anonyme, pseudo, adhésion par code, roster). Le client Supabase n'est instancié que si l'URL et la clé sont configurées ; sinon `useSupabase()` lève, seules les pages `/groups` en souffrent, et le reste de l'app est intact.
+Deux briques sont en ligne, et elles sont **facultatives** : Supabase porte les groupes de visite (compte par code e-mail ou Google, pseudo, adhésion par code, roster), et le **service** `service/` ouvre ces groupes à un assistant IA (serveur MCP et son serveur OAuth) et garde la connexion (passerelle devant GoTrue) — voir [`mcp-architecture.md`](./mcp-architecture.md). Le client Supabase n'est instancié que si l'URL et la clé sont configurées ; sinon `useSupabase()` lève, seules les pages `/groups` en souffrent, et le reste de l'app est intact.
 
 Le code ne connaît aucune ville en particulier : une ville est une entrée de `CITIES` plus du contenu tagué. Ajouter une troisième ville ne demande pas une ligne de logique.
 
@@ -35,7 +35,13 @@ Le code ne connaît aucune ville en particulier : une ville est une entrée de `
    │ content/*.md   │   │ Service Worker PWA │   │ (facultatif)    │
    │ content/*.yaml │   │ PMTiles · OSRM     │   │ auth · RLS · RT │
    │ → dans le build│   │ → hors ligne       │   │ → groupes       │
-   └────────────────┘   └────────────────────┘   └─────────────────┘
+   └────────────────┘   └────────────────────┘   └────────▲────────┘
+                                                          │ au nom du membre (RLS)
+                                                 ┌────────┴────────┐
+   assistant IA (claude.ai, ChatGPT…) ── MCP ──► │ service/ (Node) │
+                                                 │ OAuth · MCP ·   │
+                                                 │ passerelle auth │
+                                                 └─────────────────┘
 ```
 
 Le sens de dépendance descend toujours : une page peut appeler un store et un composable, un store peut appeler `utils/` et Supabase, mais `utils/` n'importe **rien** — c'est la couche vérifiable à la main, sans harnais.
@@ -57,6 +63,7 @@ Le sens de dépendance descend toujours : une page peut appeler un store et un c
 | `public/images/pois/` | Illustrations des fiches, `<slug>.jpg`, issues de Wikimedia Commons. Une fiche sans fichier reste correcte — voir `PoiImage` |
 | `assets/branding/` | Visuels destinés aux stores uniquement (bannière de la fiche). Jamais importés par le code, donc absents du bundle |
 | `assets/icon.png` | Source 1024×1024 de la marque, dont `@capacitor/assets` dérive les icônes natives Android |
+| `service/` | Service Node, seul serveur propre au projet : serveur MCP de l'assistant IA, son serveur OAuth, passerelle de connexion, pages d'accord et de suppression du compte. Il réutilise `utils/` (le calcul d'un parcours) et compile `content/` au build de son image — détail dans [`mcp-architecture.md`](./mcp-architecture.md) |
 
 ## Composables — capteurs et logique réutilisable
 

@@ -1,0 +1,22 @@
+{
+  // Le service importe des fonctions pures de l'app (../utils) : « ~/ » y mène
+  // comme dans Nuxt. Ces fichiers n'importent de « ~/types » que des types,
+  // effacés à l'exécution — tsx n'a donc jamais à résoudre « ~/ ».
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM"],
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "paths": {
+      "~/*": ["../*"]
+    }
+  },
+  "include": ["src", "test", "scripts"]
+}

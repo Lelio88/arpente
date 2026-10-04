@@ -258,6 +258,10 @@ grant update (status) on groups to authenticated;
 create table assistant_grants (
   id           uuid primary key default gen_random_uuid(),
   user_id      uuid not null references auth.users(id) on delete cascade,
+  -- Empreinte (SHA-256, hex) du client_id signé : un accès ne vaut que pour
+  -- l'assistant qui l'a obtenu ; un nouvel accord du même assistant remplace
+  -- l'ancien.
+  client_key   text not null check (client_key ~ '^[0-9a-f]{64}$'),
   client_name  text not null check (char_length(client_name) between 1 and 80),
   assistant    text not null check (char_length(assistant) between 1 and 80),
   created_at   timestamptz not null default now(),
@@ -266,7 +270,7 @@ create table assistant_grants (
   refresh_gen  integer not null default 0,
   check (expires_at > created_at)
 );
-create index assistant_grants_user_idx on assistant_grants (user_id);
+create unique index assistant_grants_user_client_idx on assistant_grants (user_id, client_key);
 alter table assistant_grants enable row level security;
 
 create policy "grants: own select" on assistant_grants

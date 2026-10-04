@@ -1,0 +1,11 @@
+# Contexte de construction de l'image du service (service/Dockerfile, depuis
+# la racine) : seuls service/, utils/, types/ et content/ y servent.
+*
+!service/package.json
+!service/package-lock.json
+!service/tsconfig.json
+!service/src
+!service/scripts
+!utils
+!types
+!content

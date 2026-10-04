@@ -1,0 +1,3 @@
+/* Cadre du CAPTCHA affiché dans l'app : fond transparent, widget centré. */
+html, body { margin: 0; background: transparent; }
+body { display: flex; justify-content: center; align-items: center; min-height: 70px; }

@@ -144,9 +144,9 @@ end $$;
 
 -- ── Accès d'assistant : chacun ne voit et ne révoque que les siens ───────
 reset role;
-insert into assistant_grants (id, user_id, client_name, assistant, expires_at) values
-  ('20000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000a', 'Claude', 'Claude', now() + interval '90 days'),
-  ('20000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000b', 'ChatGPT', 'ChatGPT', now() + interval '90 days');
+insert into assistant_grants (id, user_id, client_key, client_name, assistant, expires_at) values
+  ('20000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000a', repeat('a', 64), 'Claude', 'Claude', now() + interval '90 days'),
+  ('20000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000b', repeat('b', 64), 'ChatGPT', 'ChatGPT', now() + interval '90 days');
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated","is_anonymous":false}';
 do $$ begin
@@ -245,9 +245,9 @@ insert into auth.users (id, instance_id, aud, role, is_anonymous, email, email_c
   ('00000000-0000-0000-0000-000000000019', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', true, null, null, now() - interval '2 days', now() - interval '2 days');
 insert into auth.sessions (id, user_id, created_at, updated_at) values
   ('30000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000005', now() - interval '13 months', now() - interval '1 month');
-insert into assistant_grants (user_id, client_name, assistant, created_at, last_used_at, expires_at) values
-  ('00000000-0000-0000-0000-000000000008', 'Claude', 'Claude', now() - interval '2 months', now() - interval '7 days', now() + interval '1 month'),
-  ('00000000-0000-0000-0000-00000000000f', 'Claude', 'Claude', now() - interval '4 months', null, now() - interval '1 day');
+insert into assistant_grants (user_id, client_key, client_name, assistant, created_at, last_used_at, expires_at) values
+  ('00000000-0000-0000-0000-000000000008', repeat('c', 64), 'Claude', 'Claude', now() - interval '2 months', now() - interval '7 days', now() + interval '1 month'),
+  ('00000000-0000-0000-0000-00000000000f', repeat('d', 64), 'Claude', 'Claude', now() - interval '4 months', null, now() - interval '1 day');
 insert into profiles (id, handle) values
   ('00000000-0000-0000-0000-00000000000e', 'emile');
 insert into groups (id, name, city, created_by, created_at) values
