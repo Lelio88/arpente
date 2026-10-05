@@ -447,5 +447,66 @@ begin
   end if;
 end $$;
 
+-- ── Droits : rien à anon ; à authenticated, ce que la RLS permet ────────
+-- La base en service accorde par défaut TOUS les droits sur une table neuve à
+-- anon et authenticated (TRUNCATE compris, qui échappe à la RLS) : la RLS
+-- restait seule à tenir. Ici, chaque table ne garde que les opérations qu'une
+-- politique autorise, et toute table de public doit figurer dans la liste.
+reset role;
+do $$
+declare
+  r record;
+  v_reel text;
+begin
+  if exists (select 1 from information_schema.role_table_grants
+             where table_schema = 'public' and grantee = 'anon') then
+    raise exception 'anon a encore des droits sur : %', (select string_agg(distinct table_name, ', ')
+      from information_schema.role_table_grants where table_schema = 'public' and grantee = 'anon');
+  end if;
+  for r in select * from (values
+      ('assistant_grants', 'DELETE'),
+      ('decided_routes', 'INSERT,SELECT'),
+      ('group_members', 'DELETE,INSERT,SELECT'),
+      ('group_twins', 'DELETE,INSERT,SELECT'),
+      ('groups', 'DELETE,INSERT,SELECT'),
+      ('poi_votes', 'DELETE,INSERT,SELECT'),
+      ('preference_votes', 'INSERT,SELECT,UPDATE'),
+      ('profiles', 'INSERT,SELECT,UPDATE'),
+      ('visited_pois', 'DELETE,INSERT,SELECT')
+    ) as attendu(tbl, droits)
+  loop
+    select string_agg(privilege_type, ',' order by privilege_type) into v_reel
+    from information_schema.role_table_grants
+    where table_schema = 'public' and table_name = r.tbl and grantee = 'authenticated';
+    if v_reel is distinct from r.droits then
+      raise exception 'droits de authenticated sur % : % (attendu %)', r.tbl, v_reel, r.droits;
+    end if;
+  end loop;
+  if exists (select 1 from pg_tables where schemaname = 'public' and tablename not in (
+      'assistant_grants', 'decided_routes', 'group_members', 'group_twins', 'groups',
+      'poi_votes', 'preference_votes', 'profiles', 'visited_pois')) then
+    raise exception 'table de public sans droits attendus dans ce test : %', (select string_agg(tablename, ', ')
+      from pg_tables where schemaname = 'public' and tablename not in (
+        'assistant_grants', 'decided_routes', 'group_members', 'group_twins', 'groups',
+        'poi_votes', 'preference_votes', 'profiles', 'visited_pois'));
+  end if;
+  if not has_column_privilege('authenticated', 'groups', 'status', 'UPDATE')
+     or has_column_privilege('authenticated', 'groups', 'name', 'UPDATE')
+     or has_column_privilege('authenticated', 'groups', 'code', 'UPDATE') then
+    raise exception 'sur groups, authenticated ne doit modifier que le statut';
+  end if;
+  if not has_column_privilege('authenticated', 'assistant_grants', 'client_name', 'SELECT')
+     or has_column_privilege('authenticated', 'assistant_grants', 'refresh_gen', 'SELECT')
+     or has_column_privilege('authenticated', 'assistant_grants', 'client_key', 'SELECT') then
+    raise exception 'sur assistant_grants, authenticated lit la liste, jamais le compteur de rotation ni la clé du client';
+  end if;
+  if exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+             where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')) then
+    raise exception 'anon peut appeler : %', (select string_agg(p.proname, ', ') from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute'));
+  end if;
+end $$;
+
 select 'conformité : tous les cas passent' as resultat;
 rollback;

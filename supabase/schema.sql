@@ -96,7 +96,6 @@ create or replace function compte_requis() returns boolean
 language sql stable set search_path = public as $$
   select (auth.jwt()->>'is_anonymous')::boolean is false;
 $$;
-grant execute on function compte_requis() to authenticated;
 
 -- ── Code d'invitation + decouverte/adhesion sans exposer toute la table groups ──
 create or replace function generate_join_code() returns text
@@ -253,14 +252,23 @@ create policy "compte requis" on decided_routes   as restrictive for all to auth
 -- sur le schema/les tables au role authenticated, sinon "permission denied for
 -- schema public" meme avec des policies correctes.
 grant usage on schema public to authenticated;
-grant select, insert, update, delete on
-  profiles, groups, group_members, poi_votes, preference_votes, visited_pois, decided_routes
-  to authenticated;
-grant execute on function preview_group_by_code, join_group_by_code, generate_join_code to authenticated;
--- Un membre ne réécrit ni le nom, ni le code, ni le créateur d'un groupe : l'app
--- ne change que le statut.
-revoke update on groups from authenticated;
+-- Droits fermés (migration 20261009) : la base en service accorde par défaut
+-- tous les droits sur une table neuve à anon et authenticated, TRUNCATE compris,
+-- qui échappe à la RLS. On retire tout, puis on rend à authenticated les seules
+-- opérations qu'une politique autorise ; anon n'a rien. Un membre ne réécrit ni
+-- le nom, ni le code, ni le créateur d'un groupe : l'app ne change que le statut.
+alter default privileges for role postgres in schema public revoke all on tables from anon, authenticated;
+alter default privileges for role postgres in schema public revoke all on sequences from anon, authenticated;
+revoke all on profiles, groups, group_members, poi_votes, preference_votes, visited_pois,
+  decided_routes from anon, authenticated;
+grant select, insert, update on profiles, preference_votes to authenticated;
+grant select, insert, delete on groups, group_members, poi_votes, visited_pois to authenticated;
 grant update (status) on groups to authenticated;
+grant select, insert on decided_routes to authenticated;
+revoke execute on function compte_requis(), generate_join_code(), is_group_member(uuid),
+  shares_group_with(uuid), preview_group_by_code(text), join_group_by_code(text) from public, anon;
+grant execute on function compte_requis(), generate_join_code(), is_group_member(uuid),
+  shares_group_with(uuid), preview_group_by_code(text), join_group_by_code(text) to authenticated;
 
 -- ── Jumelage avec Agora, et changement du code d'un groupe ──────────
 -- Un groupe peut avoir un jumeau dans Agora (agendas partagés) : ses membres en
@@ -353,6 +361,7 @@ create policy "grants: own select" on assistant_grants
   for select to authenticated using (user_id = auth.uid());
 create policy "grants: own revoke" on assistant_grants
   for delete to authenticated using (user_id = auth.uid());
+revoke all on assistant_grants from anon, authenticated;
 grant select (id, client_name, assistant, created_at, last_used_at, expires_at)
   on assistant_grants to authenticated;
 grant delete on assistant_grants to authenticated;
