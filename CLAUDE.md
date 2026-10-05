@@ -15,8 +15,8 @@ Topologie rapide — le dépôt **est** l'application, sans sous-dossier interm�
 - `content/` — POI (`.md`), parcours, tips et puzzles (`.yaml`) : la donnée éditoriale, embarquée dans le build
 - `components/` — vues par domaine : `map/`, `poi/`, `route/`, `ar/`, `group/`, `ui/`
 - `composables/` — capteurs et logique réutilisable (géoloc, proximité, caméra, tracking, itinéraire)
-- `stores/` — état global Pinia : `city`, `route`, `puzzle`, `auth`, `group`, `vote`, `decision`, `groupRoute`
-- `utils/` — fonctions pures sans dépendance Vue (géométrie, agrégation de votes, iCalendar, slugs), vérifiées par `verif/` ; **importer explicitement** entre fichiers d'`utils/` plutôt que de compter sur l'auto-import de Nuxt, sinon ils ne s'exécutent plus hors du runtime
+- `stores/` — état global Pinia : `city`, `route`, `puzzle`, `auth`, `group`, `vote`, `decision`, `groupRoute`, `jumelage`
+- `utils/` — fonctions pures sans dépendance Vue (géométrie, agrégation de votes, iCalendar, slugs, liens de jumelage avec Agora), vérifiées par `verif/` ; **importer explicitement** entre fichiers d'`utils/` plutôt que de compter sur l'auto-import de Nuxt, sinon ils ne s'exécutent plus hors du runtime
 - `supabase/` — `schema.sql` (état complet : schéma, RLS, fonctions, purge), `migrations/` (ce qui a été joué sur la base en service), `tests/conformite.test.sql` (RLS et purge, sur base jetable)
 - `scripts/` — outillage hors-app : extraction du fond de carte, contrôle avant build, compilation des cibles AR, synthèse du jingle d'ouverture, publication sur Play (`publish_play.py`, commun aux dépôts du conteneur)
 - `service/` — service Node : serveur MCP de l'assistant IA, son serveur OAuth, passerelle `/otp` et `/verify` devant GoTrue, pages d'accord et de suppression du compte ; réutilise `utils/` et compile `content/` au build de son image
@@ -31,7 +31,7 @@ Topologie rapide — le dépôt **est** l'application, sans sous-dossier interm�
 - **Nuxt Content v3** — collections déclarées dans `content.config.ts` ; **Pinia 3** (état), **VueUse 14** (capteurs)
 - **Leaflet 1.9** (carte) + **protomaps-leaflet 5** / **pmtiles 3** : fond vectoriel hors ligne extrait du basemap Protomaps (OSM, ODbL) ; **OSRM** public pour l'itinéraire piéton
 - **mind-ar 1.2** (reconnaissance d'image) + Canvas 2D (tracé du puzzle)
-- **Capacitor 8** (Android/iOS : caméra, géoloc, haptique, préférences, calendrier)
+- **Capacitor 8** (Android/iOS : caméra, géoloc, haptique, préférences, calendrier, liens entrants `@capacitor/app` — App Links du jumelage avec Agora)
 - **@supabase/supabase-js 2** (connexion par code e-mail et Google, Postgres, Realtime) — **optionnel au runtime** ; session native dans **@aparajita/capacitor-secure-storage** (coffre chiffré par le Keystore)
 - **@vite-pwa/nuxt** (service worker : pré-cache du fond de carte, cache OSRM), **SCSS** sans framework CSS
 - **Service** (`service/package.json`) : Node 24, Express 5, SDK MCP v2 (`@modelcontextprotocol/server`), zod 4, pg, jose ; tests `node:test`
@@ -87,7 +87,7 @@ python scripts/publish_play.py --track alpha --notes-file notes.txt --dry-run   
 | Nouvelle variable d'environnement | `.env.example` + `runtimeConfig` de `nuxt.config.ts` (app) ; tableau « Configuration » de `docs/mcp-architecture.md` (service) |
 | Outil MCP, route OAuth, page ou passerelle du service | `service/` + `docs/mcp-architecture.md` (un test exige chaque outil) + `docs/assistant.html` |
 | Dépendance critique ajoutée ou retirée | Section III ci-dessus + `package.json` |
-| Permission Android ajoutée | `android/app/src/main/AndroidManifest.xml` + garde-fou 10 ci-dessus + la Data safety de la fiche Play, qui doit rester en accord |
+| Permission Android ajoutée ; ou lien ouvert dans l'app (App Link), clé de signature changée, lien entre apps modifié | `android/app/src/main/AndroidManifest.xml` + garde-fou 10 ci-dessus + la Data safety de la fiche Play ; App Link : `docs/.well-known/assetlinks.json` (empreintes) + `utils/jumelage.ts` + `docs/liens-inter-apps.md` du dépôt méta |
 | Marque retouchée (icône, écran de démarrage) | `assets/icon.png` puis recomposition des `mipmap-*` et `drawable*` — procédure et pièges dans « Plateforme Android » de `docs/architecture.md` |
 | Intro retouchée (geste ou note) | `BATTUES` de `SplashScreen.vue` **et** de `scripts/gen-intro-jingle.ts`, puis `npm run gen-jingle` (ffmpeg requis) |
 | Nouvel anti-pattern découvert | Section « Anti-patterns » de `docs/architecture.md` |

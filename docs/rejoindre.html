@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="tdm-reservation" content="1">
+<meta name="robots" content="noindex">
+<title>Rejoindre un groupe — Arpente</title>
+<style>
+  :root { --nuit: #1a1a2e; --nuit-clair: #22243f; --lien: #ff7a8f; --texte: #eaeaea; --doux: #9a97ad; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--nuit); color: var(--texte);
+         font: 16px/1.65 -apple-system, "Segoe UI", system-ui, sans-serif; }
+  main { max-width: 560px; margin: 0 auto; padding: 56px 24px 72px; }
+  h1 { margin: 0 0 16px; font: 400 32px/1.1 Georgia, serif; }
+  p { color: #d6d3e0; }
+  .code { display: inline-block; margin: 8px 0 4px; padding: 10px 18px; border-radius: 10px;
+          background: var(--nuit-clair); font: 600 28px/1 ui-monospace, monospace; letter-spacing: .18em; }
+  .doux { color: var(--doux); font-size: 14.5px; }
+  a { color: var(--lien); }
+</style>
+</head>
+<body>
+<main>
+<h1>Rejoindre un groupe Arpente</h1>
+<p id="avec-code" hidden>Ce lien fait rejoindre un groupe de visite d'Arpente. Il s'ouvre dans l'app,
+qui ne semble pas installée sur cet appareil. Une fois Arpente installée, ouvre l'onglet
+<strong>Groupes</strong>, touche <strong>Rejoindre avec un code</strong> et saisis :</p>
+<p id="code" class="code" hidden></p>
+<p id="sans-code">Ce lien de groupe n'est pas complet : demande-en un nouveau à un membre du groupe.</p>
+<p class="doux">Arpente est un guide de visite hors ligne de Caen et de Troyes.
+<a href="https://arpente.heianenterprise.com/">En savoir plus</a>.</p>
+</main>
+<script>
+  // Le code voyage dans le fragment (#code=…), qui ne quitte pas le navigateur :
+  // il n'apparaît dans aucun journal du serveur. Affiché comme texte, jamais
+  // interprété, et seulement s'il a la forme d'un code Arpente.
+  var code = (new URLSearchParams(location.hash.slice(1)).get('code') || '').trim().toUpperCase();
+  if (/^[A-HJ-NP-Z2-9]{6}$/.test(code)) {
+    document.getElementById('code').textContent = code;
+    document.getElementById('code').hidden = false;
+    document.getElementById('avec-code').hidden = false;
+    document.getElementById('sans-code').hidden = true;
+  }
+</script>
+</body>
+</html>

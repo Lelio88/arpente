@@ -128,6 +128,15 @@ export interface Group {
   createdAt: string
 }
 
+/**
+ * Le jumeau d'un groupe dans une autre app (Agora) : le code pour y rejoindre
+ * le groupe jumeau. Protocole : utils/jumelage.ts.
+ */
+export interface GroupTwin {
+  app: 'agora'
+  remoteCode: string
+}
+
 export interface GroupMember {
   groupId: string
   userId: string

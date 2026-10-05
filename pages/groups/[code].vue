@@ -62,7 +62,11 @@ async function charger() {
 
     const groupe = groupStore.currentGroup
     if (groupe) {
-      await Promise.all([voteStore.load(groupe.id), decisionStore.load(groupe.id)])
+      await Promise.all([
+        voteStore.load(groupe.id),
+        decisionStore.load(groupe.id),
+        groupStore.loadTwins(groupe.id),
+      ])
       voteStore.subscribe(groupe.id)
     }
   } catch {
@@ -258,6 +262,8 @@ async function rafraichir() {
           </template>
         </p>
       </section>
+
+      <JumelageSection :group="groupStore.currentGroup" :est-createur="estCreateur" />
 
       <section v-if="estCreateur" class="group-section">
         <p v-if="suppressionError" class="decision-erreur">{{ suppressionError }}</p>

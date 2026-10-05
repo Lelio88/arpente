@@ -19,6 +19,19 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Liens de nos pages ouverts dans l'app (App Links) : jumelage avec
+                 Agora et « Rejoindre aussi dans Arpente ». Vérifiés par
+                 docs/.well-known/assetlinks.json ; sans vérification, Android
+                 ouvre le navigateur et la page de repli, rien ne casse. Les
+                 paramètres sont dans le fragment : plugins/liensEntrants. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="arpente.heianenterprise.com" />
+                <data android:path="/jumeler.html" />
+                <data android:path="/rejoindre.html" />
+            </intent-filter>
         </activity>
 
         <provider

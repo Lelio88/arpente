@@ -54,7 +54,7 @@ Le sens de dépendance descend toujours : une page peut appeler un store et un c
 | `components/poi/` | `BottomSheet.vue` — volet à trois positions (`peek` / `half` / `full`), déclenché par la proximité ; `PoiImage.vue` — illustration qui s'efface si son fichier est absent, seul point où une image de POI est rendue |
 | `components/route/` | Carte de parcours, checklist des étapes, suivi de progression |
 | `components/ar/` | Flux caméra, reconnaissance de cible MindAR, overlay Canvas du tracé, animation de réussite |
-| `components/group/` | Création et adhésion d'un groupe, demande de pseudo, liste des membres, vote sur les POI (`PoiVoteList`) et préférences de parcours (`PreferenceForm`) |
+| `components/group/` | Création et adhésion d'un groupe, demande de pseudo, liste des membres, vote sur les POI (`PoiVoteList`) et préférences de parcours (`PreferenceForm`), jumelage avec Agora et changement du code (`JumelageSection`) |
 | `components/ui/` | Barre de navigation, sélecteur de ville, écran d'ouverture animé — voir « Ouverture de l'app » |
 | `content/` | 151 POI, 12 parcours, 8 tips, 1 puzzle — la donnée éditoriale, versionnée avec le code |
 | `scripts/` | Hors-app : extraction du fond de carte Protomaps, contrôle avant build, compilation des cibles AR, synthèse du jingle d'ouverture, publication sur Play (`publish_play.py`, recopié tel quel des autres dépôts) |
@@ -94,6 +94,7 @@ Le store `vote` porte en plus l'abonnement Realtime : un seul canal ouvert à la
 | `vote` | Approbations par POI, préférences de chaque membre, canal temps réel | Supabase + WebSocket |
 | `decision` | Dernier parcours arrêté du groupe | Supabase |
 | `groupRoute` | Pont entre la décision et le parcours solo : checklist partagée, flux temps réel | Supabase + `localStorage` (reprise) |
+| `jumelage` | Jumelages lancés depuis cet appareil, en attente de la réponse d'Agora (jeton, groupe, code), 24 h au plus | `localStorage` (`arpente-jumelages`) |
 
 ## Utilitaires purs
 
@@ -107,6 +108,7 @@ Le store `vote` porte en plus l'abonnement Realtime : un seul canal ouvert à la
 | `decision.ts` | Le cœur d'une décision de groupe, **partagé par l'app et par le service de l'assistant IA** : `preparerDecision` (lieux connus seulement, refus d'un parcours vide) et `mesurerTrajet` (OSRM, ou somme des haversines marquée `isEstimated`), dont le transport réseau est injecté par l'appelant |
 | `sessionStorage.ts` | Stockage de la session : coffre chiffré avec reprise unique de l'ancienne session en clair (`stockageSessionMigrant`) ; `identiteDisparue` distingue une identité effacée par le serveur d'une simple panne réseau |
 | `liensLegaux.ts` | URL des pages légales publiées (`arpente.heianenterprise.com`) ; `confidentialite` est celle de la fiche Play, `conditions` celle qu'on accepte en se connectant (et que l'écran de consentement de Google cite) |
+| `jumelage.ts` | Protocole des liens entre apps (jumelage avec Agora) : lire et valider un lien reçu, construire demande, réponse et adhésion (paramètres dans le fragment), traduire un App Link en route interne (`routeDepuisLien`), apparier une réponse à une demande partie d'ici (`demandeCorrespondante`) |
 | `features.ts` | Drapeaux de ce que l'app expose. `AR_PUZZLE_ENABLED` conditionne l'accès au puzzle, qui reste éteint tant qu'aucune cible `.mind` n'est compilée |
 
 ## Système multi-ville
@@ -137,6 +139,7 @@ Devant cette pile, le Caddy du serveur tient le rôle de Kong (routage des préf
 | `preference_votes` | Une ligne par membre : nombre de POI et durée souhaités |
 | `visited_pois` | Checklist partagée — n'importe quel membre coche pour le groupe |
 | `decided_routes` | Instantané immuable d'un parcours décidé ; une nouvelle décision = une nouvelle ligne |
+| `group_twins` | Jumeau du groupe dans Agora : le code pour y rejoindre le groupe jumeau. Lu par les membres ; ajouté ou défait par le créateur seul, **jamais modifié** (un jumeau ne se remplace pas, on le défait d'abord) |
 | `assistant_grants` | Accès accordés à un assistant IA : l'app liste et révoque les siens (sans `refresh_gen`, le compteur de rotation des jetons) ; le service de l'assistant les crée et les vérifie à chaque appel |
 
 **Les groupes sont réservés aux comptes** (e-mail ou Google). `compte_requis()` n'est vraie que pour un jeton dont le claim `is_anonymous` vaut `false` — un jeton sans ce claim est traité comme anonyme, l'échec est fermé. Chaque table des groupes porte une politique **restrictive** « compte requis », qui s'ajoute aux autres et vaut aussi pour Realtime ; `preview_group_by_code` et `join_group_by_code`, qui contournent la RLS, la vérifient elles-mêmes.
@@ -163,7 +166,7 @@ Les deux bugs ont survécu à la relecture et au typage : ils ne vivent ni dans 
 
 ### Droits, suppression et purge
 
-- **Un membre ne change que le statut d'un groupe** : la policy `update` dit *qui* (un membre), le `grant update (status)` par colonne dit *quoi*. Le nom, le code, la ville et le créateur ne bougent plus après la création.
+- **Un membre ne change que le statut d'un groupe** : la policy `update` dit *qui* (un membre), le `grant update (status)` par colonne dit *quoi*. Le nom, la ville et le créateur ne bougent plus après la création ; le **code**, seul son créateur le change, par `regenerate_join_code()` (`security definer`) : l'ancien n'ouvre plus rien, les membres restent. C'est ce qui rend révocable un code qui a circulé, dont celui donné à un groupe Agora jumeau.
 - **Seul le créateur supprime un groupe** (policy `delete`) ; tout part en cascade (votes, préférences, coches, parcours). Sous RLS, un `DELETE` refusé n'est pas une erreur mais zéro ligne affectée : `groupStore.deleteGroup` relit ce qu'il a supprimé et échoue s'il n'a rien touché.
 - **Chacun supprime son identité** (`delete_my_account()`, `security definer`, l'identifiant vient du jeton) : le profil part en cascade depuis `auth.users`, avec ses adhésions, ses votes et ses préférences. Les traces laissées chez les autres (`groups.created_by`, `visited_pois.user_id`, `decided_routes.decided_by`) passent à `null` (`on delete set null`) : le groupe reste aux autres, l'auteur s'affiche « ? ».
 - **Purge nocturne** (`purge_inactive()`, planifiée par `pg_cron` à 3 h 17) :
@@ -250,6 +253,20 @@ Le store solo `route` **n'est pas modifié** : il sait déjà tracer, guider et 
 4. `useGeolocation` suit la position, `useProximity` détecte l'entrée dans le rayon d'un POI, vibre, et ouvre le bottom sheet.
 5. Avec un parcours actif, `useRouting` trace l'itinéraire vers l'étape suivante — pré-chargé au démarrage par `plugins/precache-routes.client.ts`, ce qui rend les parcours navigables sans réseau.
 
+## Flux typique — jumeler un groupe avec Agora
+
+Agora (agendas partagés) et Arpente ne se parlent jamais de serveur à serveur : elles s'ouvrent l'une l'autre par des liens préremplis, et la personne valide dans l'app d'arrivée. Le protocole commun (adresses, paramètres, six règles de sécurité) est dans `docs/liens-inter-apps.md` du dépôt méta ; `utils/jumelage.ts` en est la traduction ici, éprouvée par `verif/jumelage.ts`.
+
+1. **Lancé d'ici** : le créateur touche « Jumeler avec Agora » (`JumelageSection`). C'est un simple lien vers `https://agora.heianenterprise.com/#/twin?de=arpente&code=…&nom=…&etat=…` ; au clic, le store `jumelage` retient le jeton. Capacitor confie l'adresse au système, qui ouvre Agora par son App Link.
+2. Dans Agora, un admin choisit ou crée le groupe jumeau ; Agora renvoie vers `https://arpente.heianenterprise.com/jumeler.html#de=agora&code=…&pour=…&etat=…`.
+3. Android ouvre Arpente (App Link), `plugins/liensEntrants.client.ts` traduit l'adresse en `/groups/jumeler?…`. La réponse n'est montrée que si elle répond à une demande partie d'ici (même jeton, même code, moins de 24 h) — sinon un membre qui connaît le code pourrait faire rattacher un groupe Agora à lui. Le créateur confirme : une ligne dans `group_twins`.
+4. **Lancé depuis Agora** : même écran, en demande. On choisit un groupe que l'on a créé, ou on en crée un (nom prérempli, ville à choisir) ; le jumeau est enregistré, puis un lien « Terminer dans Agora » porte la réponse.
+5. Les membres voient « Rejoindre aussi dans Agora » (`https://agora.heianenterprise.com/#/join/CODE`) ; Agora leur fait choisir ce qu'ils partagent. Dans l'autre sens, `rejoindre.html#code=…` ouvre l'onglet Groupes, fenêtre « Rejoindre » préremplie.
+
+**Les paramètres voyagent dans le fragment.** Sans l'app, le lien tombe sur une page de repli de `docs/` (servie par GitHub Pages) : une requête finirait dans ses journaux, avec un code qui ouvre un groupe. **Rien n'est enregistré d'un lien tel quel** : seuls l'app (liste fermée) et un code au bon format ; les adresses d'Agora sont reconstruites depuis sa base fixe. **Toute ouverture d'Agora est un lien que la personne touche** : rien ne s'ouvre après un `await`.
+
+**Défaire n'agit que d'ici** : le bouton disparaît, mais le code donné à Agora ouvre toujours le groupe — d'où « Changer le code », que la confirmation propose. Le jumeau reste affiché dans Agora jusqu'à ce qu'on l'y défasse.
+
 ## Patterns imposés
 
 - **Client-only pour tout ce qui touche au navigateur.** Leaflet et la caméra vivent dans des composants `.client.vue` ou des plugins `.client.ts` ; le contraire casse la génération statique.
@@ -321,6 +338,8 @@ La grammaire est celle de DewDrop et DeckHand : 2,2 s d'animation, un plancher d
 `npm run generate` puis `npx cap sync android` suffisent à embarquer une nouvelle version du web. `npx cap add android` est à proscrire sur un projet existant : la commande réécrit le squelette.
 
 **Le manifeste ne déclare que `INTERNET` et la géolocalisation** (fine et approximative, sans `ACCESS_BACKGROUND_LOCATION`). `VIBRATE` arrive par fusion depuis le manifeste du plugin Haptics. La caméra n'est pas demandée tant que le puzzle AR est éteint, et l'agenda pas davantage : `useCalendar` passe par `createEventWithPrompt`, qui confie l'écriture à l'application d'agenda du système.
+
+**Liens ouverts dans l'app (App Links).** Un filtre `autoVerify` de `MainActivity` capte `https://arpente.heianenterprise.com/jumeler.html` et `/rejoindre.html` (jumelage avec Agora). Android le vérifie à l'installation par `docs/.well-known/assetlinks.json`, qui porte deux empreintes SHA-256 : la clé de signature de Play (lue par l'API Play, `generatedApks`) et la clé d'envoi (`keytool` sur le keystore du coffre). GitHub Pages ignore les dossiers à point : `docs/_config.yml` publie `.well-known`. Une clé qui change impose de mettre ce fichier à jour, sinon les liens retombent sur les pages de repli. `@capacitor/app` livre l'adresse à `plugins/liensEntrants.client.ts`.
 
 **Icônes et écran de démarrage.** Ils dérivent tous de `assets/icon.png` (1024×1024). `capacitor-assets generate` met en place la matrice des densités, mais son résultat ne peut pas être conservé tel quel : l'outil traite l'icône source comme un *foreground* alors qu'elle est opaque et déjà composée, puis l'incruste avec 16,7 % de marge sur un fond blanc — d'où un liseré clair autour de l'icône, et un écran de démarrage blanc au milieu d'une app bleu nuit. Les fichiers en place ont donc été recomposés avec `sharp` :
 

@@ -24,8 +24,8 @@ android {
         // versionCode : entier que Play exige STRICTEMENT croissant d'un envoi
         // a l'autre. Il ne redescend jamais, meme apres un retrait de version.
         // versionName : ce que l'utilisateur lit sur la fiche.
-        versionCode 4
-        versionName "1.3.0"
+        versionCode 5
+        versionName "1.4.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

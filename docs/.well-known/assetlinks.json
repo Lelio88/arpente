@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.arpente",
+      "sha256_cert_fingerprints": [
+        "D7:FB:86:03:1F:E5:11:26:9B:9B:1D:3D:AA:99:EA:9B:D3:EA:98:F9:A4:3F:D1:D4:EC:5D:D2:62:AD:9A:7B:24",
+        "D3:F7:3D:25:F5:FA:65:42:BD:1E:80:3C:F8:15:52:3C:B1:B1:21:E4:22:DC:FA:0A:6C:9F:72:86:91:54:D3:62"
+      ]
+    }
+  }
+]

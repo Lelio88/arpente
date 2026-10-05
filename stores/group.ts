@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { City, Group, GroupMember } from '~/types'
+import type { City, Group, GroupMember, GroupTwin } from '~/types'
 
 export interface GroupPreview {
   id: string
@@ -22,6 +22,8 @@ export const useGroupStore = defineStore('group', () => {
   const myGroups = ref<Group[]>([])
   const currentGroup = ref<Group | null>(null)
   const members = ref<GroupMember[]>([])
+  /** Jumeaux du groupe courant dans d'autres apps (Agora). */
+  const twins = ref<GroupTwin[]>([])
 
   function mapGroup(row: any): Group {
     return {
@@ -141,17 +143,75 @@ export const useGroupStore = defineStore('group', () => {
     }
   }
 
+  async function loadTwins(groupId: string): Promise<void> {
+    const supabase = useSupabase()
+    const { data, error } = await supabase
+      .from('group_twins')
+      .select('app, remote_code')
+      .eq('group_id', groupId)
+    if (error) throw error
+    twins.value = ((data ?? []) as Array<{ app: GroupTwin['app'], remote_code: string }>)
+      .map(row => ({ app: row.app, remoteCode: row.remote_code }))
+  }
+
+  /**
+   * Jumelle le groupe (créateur seul, RLS). Un jumeau ne se remplace pas : un
+   * groupe déjà jumelé lève `twin_exists`, et l'on défait d'abord.
+   */
+  async function addTwin(groupId: string, app: GroupTwin['app'], remoteCode: string): Promise<void> {
+    const supabase = useSupabase()
+    const { error } = await supabase
+      .from('group_twins')
+      .insert({ group_id: groupId, app, remote_code: remoteCode })
+    if (error) throw new Error(error.code === '23505' ? 'twin_exists' : error.message)
+    if (currentGroup.value?.id === groupId) await loadTwins(groupId)
+  }
+
+  /** Défait le jumelage (créateur seul) ; sous RLS, un refus est zéro ligne. */
+  async function removeTwin(groupId: string, app: GroupTwin['app']): Promise<void> {
+    const supabase = useSupabase()
+    const { data, error } = await supabase
+      .from('group_twins')
+      .delete()
+      .eq('group_id', groupId)
+      .eq('app', app)
+      .select('app')
+    if (error) throw error
+    if (!data?.length) throw new Error('not_group_creator')
+    twins.value = twins.value.filter(t => t.app !== app)
+  }
+
+  /**
+   * Change le code du groupe (créateur seul) : l'ancien n'ouvre plus rien, les
+   * membres restent. Rend le nouveau code — l'adresse de la page en dépend.
+   */
+  async function regenerateCode(groupId: string): Promise<string> {
+    const supabase = useSupabase()
+    const { data, error } = await supabase.rpc('regenerate_join_code', { p_group_id: groupId })
+    if (error) throw error
+    const code = data as string
+    if (currentGroup.value?.id === groupId) currentGroup.value = { ...currentGroup.value, code }
+    myGroups.value = myGroups.value.map(g => (g.id === groupId ? { ...g, code } : g))
+    return code
+  }
+
   /** Oublie tout l'état local (après « Supprimer mes données »). */
   function oublier(): void {
     myGroups.value = []
     currentGroup.value = null
     members.value = []
+    twins.value = []
   }
 
   return {
     myGroups,
     currentGroup,
     members,
+    twins,
+    loadTwins,
+    addTwin,
+    removeTwin,
+    regenerateCode,
     deleteGroup,
     oublier,
     loadMyGroups,

@@ -1,6 +1,6 @@
 -- Test de conformité de la couche groupes : comptes requis, cloisonnement des
--- pseudos, droits sur les groupes, accès d'assistant IA, suppression par
--- l'utilisateur, purge.
+-- pseudos, droits sur les groupes, jumelage avec Agora et changement de code,
+-- accès d'assistant IA, suppression par l'utilisateur, purge.
 --
 -- À jouer sur une base JETABLE portant schema.sql (ou le schéma d'origine +
 -- les migrations) — par exemple un « supabase start » local :
@@ -165,6 +165,124 @@ do $$ begin
     raise exception 'les votes d''un groupe supprimé subsistent';
   end if;
 end $$;
+
+-- ── Jumelage avec Agora : le créateur écrit, les membres lisent ─────────
+-- B, simple membre de G1, ne jumelle pas.
+do $$ begin
+  begin
+    insert into group_twins (group_id, app, remote_code) values
+      ('10000000-0000-0000-0000-000000000001', 'agora', 'WXYZ2345');
+    raise exception 'un simple membre a jumelé le groupe';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+-- A, créateur, jumelle ; app et format du code sont contrôlés, et un jumeau
+-- ne se remplace pas : on le défait d'abord (un lien forgé ne doit pas
+-- rediriger les membres en silence).
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated","is_anonymous":false}';
+do $$ begin
+  begin
+    insert into group_twins (group_id, app, remote_code) values ('10000000-0000-0000-0000-000000000001', 'dewdrop', 'WXYZ2345');
+    raise exception 'une app inconnue a été jumelée';
+  exception when check_violation then null;
+  end;
+  begin
+    insert into group_twins (group_id, app, remote_code) values ('10000000-0000-0000-0000-000000000001', 'agora', 'ABC234');
+    raise exception 'un code Agora mal formé a été enregistré';
+  exception when check_violation then null;
+  end;
+end $$;
+insert into group_twins (group_id, app, remote_code) values ('10000000-0000-0000-0000-000000000001', 'agora', 'WXYZ2345');
+do $$ begin
+  begin
+    insert into group_twins (group_id, app, remote_code) values ('10000000-0000-0000-0000-000000000001', 'agora', 'QRST6789');
+    raise exception 'un second jumeau Agora a été ajouté';
+  exception when unique_violation then null;
+  end;
+  begin
+    update group_twins set remote_code = 'QRST6789' where group_id = '10000000-0000-0000-0000-000000000001';
+    raise exception 'un jumeau a été remplacé sans être défait';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+delete from group_twins where group_id = '10000000-0000-0000-0000-000000000001';
+insert into group_twins (group_id, app, remote_code) values ('10000000-0000-0000-0000-000000000001', 'agora', 'QRST6789');
+-- B lit le jumeau, mais ne le défait pas (la RLS filtre, sans erreur).
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated","is_anonymous":false}';
+delete from group_twins where group_id = '10000000-0000-0000-0000-000000000001';
+do $$ begin
+  if (select remote_code from group_twins where group_id = '10000000-0000-0000-0000-000000000001') is distinct from 'QRST6789' then
+    raise exception 'un simple membre a défait le jumelage, ou ne le voit pas';
+  end if;
+end $$;
+-- C, inconnu, et Z, anonyme pourtant membre, ne voient rien.
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated","is_anonymous":false}';
+do $$ begin
+  if exists (select 1 from group_twins) then
+    raise exception 'un inconnu voit le jumeau d''un groupe';
+  end if;
+end $$;
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000ff","role":"authenticated","is_anonymous":true}';
+do $$ begin
+  if exists (select 1 from group_twins) then
+    raise exception 'une identité anonyme voit le jumeau d''un groupe';
+  end if;
+end $$;
+
+-- ── Changer le code : le créateur seul ; l'ancien n'ouvre plus rien ─────
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated","is_anonymous":false}';
+insert into groups (id, name, city, created_by) values
+  ('10000000-0000-0000-0000-000000000005', 'Jumelé', 'caen', '00000000-0000-0000-0000-00000000000a');
+insert into group_members (group_id, user_id) values
+  ('10000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-00000000000a');
+insert into group_twins (group_id, app, remote_code) values ('10000000-0000-0000-0000-000000000005', 'agora', 'WXYZ2345');
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated","is_anonymous":false}';
+do $$ begin
+  begin
+    perform regenerate_join_code('10000000-0000-0000-0000-000000000001');
+    raise exception 'un simple membre a changé le code';
+  exception when raise_exception then
+    if sqlerrm <> 'not_group_creator' then raise; end if;
+  end;
+end $$;
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated","is_anonymous":false}';
+do $$
+declare v_ancien text; v_nouveau text;
+begin
+  select code into v_ancien from groups where id = '10000000-0000-0000-0000-000000000005';
+  v_nouveau := regenerate_join_code('10000000-0000-0000-0000-000000000005');
+  if v_nouveau = v_ancien or v_nouveau !~ '^[A-HJ-NP-Z2-9]{6}$' then
+    raise exception 'le nouveau code doit être neuf et au format';
+  end if;
+  if (select code from groups where id = '10000000-0000-0000-0000-000000000005') <> v_nouveau then
+    raise exception 'le code du groupe n''a pas changé';
+  end if;
+  perform set_config('arpente_test.ancien_code', v_ancien, true);
+  perform set_config('arpente_test.nouveau_code', v_nouveau, true);
+end $$;
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated","is_anonymous":false}';
+do $$ begin
+  begin
+    perform join_group_by_code(current_setting('arpente_test.ancien_code'));
+    raise exception 'l''ancien code ouvre encore le groupe';
+  exception when raise_exception then
+    if sqlerrm <> 'group_not_found' then raise; end if;
+  end;
+  if (select member_count from preview_group_by_code(current_setting('arpente_test.nouveau_code'))) <> 1 then
+    raise exception 'le nouveau code doit ouvrir le groupe';
+  end if;
+end $$;
+
+-- Supprimer un groupe emporte son jumeau.
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated","is_anonymous":false}';
+delete from groups where id = '10000000-0000-0000-0000-000000000005';
+reset role;
+do $$ begin
+  if exists (select 1 from group_twins where group_id = '10000000-0000-0000-0000-000000000005') then
+    raise exception 'le jumeau d''un groupe supprimé subsiste';
+  end if;
+end $$;
+set local role authenticated;
 
 -- ── Accès d'assistant : chacun ne voit et ne révoque que les siens ───────
 reset role;

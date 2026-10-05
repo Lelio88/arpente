@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { useGroupStore, type GroupPreview } from '~/stores/group'
 
+const props = defineProps<{
+  /** Code reçu par un lien (« Rejoindre aussi dans Arpente ») : cherché d'emblée. */
+  codeInitial?: string
+}>()
+
 const emit = defineEmits<{
   close: []
   joined: [code: string]
@@ -8,7 +13,7 @@ const emit = defineEmits<{
 
 const groupStore = useGroupStore()
 
-const code = ref('')
+const code = ref(props.codeInitial ?? '')
 const preview = ref<GroupPreview | null>(null)
 const isPreviewing = ref(false)
 const isJoining = ref(false)
@@ -38,6 +43,10 @@ async function lookup() {
     isPreviewing.value = false
   }
 }
+
+onMounted(() => {
+  if (props.codeInitial) lookup()
+})
 
 async function confirmJoin() {
   isJoining.value = true
