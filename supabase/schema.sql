@@ -305,6 +305,9 @@ create policy "twins: creator insert" on group_twins
 create policy "twins: creator delete" on group_twins
   for delete using (is_group_creator(group_id));
 create policy "compte requis" on group_twins as restrictive for all to authenticated using (compte_requis()) with check (compte_requis());
+-- Révoquer d'abord : la base en service accorde par défaut tous les droits sur
+-- une table neuve (UPDATE, et TRUNCATE qui échappe à la RLS).
+revoke all on group_twins from anon, authenticated;
 grant select, insert, delete on group_twins to authenticated;
 
 create or replace function regenerate_join_code(p_group_id uuid) returns text
