@@ -70,7 +70,12 @@ export function verificateur(signataire: Signataire, autorisations: DepotAutoris
         token: jeton,
         clientId: r.cid,
         scopes: [SCOPE],
-        expiresAt: r.exp,
+        // requireBearerAuth (SDK) recontrôle l'échéance contre Date.now(), pas
+        // contre notre horloge : on lui donne la durée restante mesurée par
+        // `maintenant`, ramenée à l'heure réelle. En production les deux
+        // horloges sont la même et la valeur ne change pas ; sous une horloge
+        // injectée (tests), le SDK cesse de contredire celle-ci.
+        expiresAt: Math.floor(Date.now() / 1000) + (r.exp - Math.floor(maintenant() / 1000)),
         resource: new URL(signataire.ressource),
         extra: { userId: a.userId, autorisationId: a.id },
       }

@@ -140,3 +140,4 @@ Quatre interrupteurs du `.env` du serveur ouvrent les étapes, **dans cet ordre*
 - ❌ Répondre « adresse inconnue » ou « déjà utilisée » où que ce soit dans la connexion.
 - ❌ Rendre à l'assistant un texte écrit par un membre sans le borner : pseudos et noms nettoyés, slugs inconnus écartés.
 - ❌ Filtrer `/token` sur un en-tête `Content-Type` sans le réécrire : avec deux en-têtes, le proxy en voit un, Go lit l'autre.
+- ❌ Rendre au SDK une échéance calculée sur l'horloge injectée : `requireBearerAuth` la recontrôle contre `Date.now()`. Le vérificateur lui transmet la durée **restante** (`test/horloge.test.ts`) — sans quoi le banc, figé au 5 octobre 2026 à 10 h UTC, voyait tous ses jetons refusés dès 11 h.
