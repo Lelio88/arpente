@@ -1,12 +1,17 @@
 /** Verifie utils/jumelage.ts contre la vraie implementation, hors de Nuxt. */
 import {
+  APPS_JUMELLES,
   DUREE_DEMANDE_MS,
+  adhesionSurDemande,
   demandeCorrespondante,
+  libelleRejoindre,
   lienDemande,
   lienRejoindre,
   lienReponse,
   lireLienJumelage,
+  motGroupe,
   nettoyerNom,
+  nettoyerTexte,
   nouvelEtat,
   routeDepuisLien,
 } from '../utils/jumelage'
@@ -26,9 +31,17 @@ verifie('une demande d\'Agora est lue', demande?.type === 'demande' && demande.c
 const reponse = lireLienJumelage({ de: 'agora', code: 'WXYZ2345', pour: 'abc234', etat: ETAT })
 verifie('une reponse porte le code Arpente dans « pour »',
   reponse?.type === 'reponse' && reponse.pour === 'ABC234', JSON.stringify(reponse))
+const demandeDewdrop = lireLienJumelage({ de: 'dewdrop', code: 'qrst6789', nom: 'Les amis', etat: ETAT })
+verifie('une demande de DewDrop est lue', demandeDewdrop?.type === 'demande'
+  && demandeDewdrop.app === 'dewdrop' && demandeDewdrop.code === 'QRST6789', JSON.stringify(demandeDewdrop))
+const reponseDewdrop = lireLienJumelage({ de: 'dewdrop', code: 'QRST6789', pour: 'ABC234', etat: ETAT })
+verifie('une reponse de DewDrop est lue',
+  reponseDewdrop?.type === 'reponse' && reponseDewdrop.app === 'dewdrop', JSON.stringify(reponseDewdrop))
 
 const refuses: Array<[string, Record<string, unknown>]> = [
-  ['app inconnue', { de: 'dewdrop', code: 'WXYZ2345', etat: ETAT }],
+  ['app inconnue', { de: 'deckhand', code: 'WXYZ2345', etat: ETAT }],
+  ['app qui ne jumelle pas (nous-memes)', { de: 'arpente', code: 'ABC234', etat: ETAT }],
+  ['code DewDrop trop court', { de: 'dewdrop', code: 'ABC234', etat: ETAT }],
   ['app héritée d\'Object', { de: 'toString', code: 'WXYZ2345', etat: ETAT }],
   ['sans app', { code: 'WXYZ2345', etat: ETAT }],
   ['code Agora trop court', { de: 'agora', code: 'ABC234', etat: ETAT }],
@@ -49,6 +62,10 @@ verifie('controles et inversion retires, espaces replies',
   JSON.stringify(nettoyerNom('  Sortie\u0000 \u202eCaen\n\tdimanche  ')))
 verifie('60 caracteres au plus', Array.from(nettoyerNom('é'.repeat(80)) ?? '').length === 60)
 verifie('rien de lisible : null', nettoyerNom(' \u0007\u202e ') === null)
+const multiLignes = nettoyerTexte('Un\r\n\u202eDeux\n\n\n\nTrois  ', 100, true)
+verifie('texte sur plusieurs lignes : lignes gardees, CRLF ramene',
+  multiLignes === 'Un\nDeux\n\nTrois', JSON.stringify(multiLignes))
+verifie('texte sur une ligne : retours a la ligne remplaces', nettoyerTexte('Un\nDeux', 100) === 'Un Deux')
 
 console.log('\n--- Liens construits ---')
 const urlDemande = new URL(lienDemande('agora', { code: 'ABC234', nom: 'Sortie Caen', etat: ETAT }))
@@ -65,6 +82,29 @@ verifie('la reponse nomme le groupe Agora',
   pReponse.get('pour') === 'WXYZ2345' && pReponse.get('code') === 'ABC234')
 verifie('rejoindre le jumeau Agora',
   lienRejoindre('agora', 'WXYZ2345') === 'https://agora.heianenterprise.com/#/join/WXYZ2345')
+const urlDemandeDewdrop = new URL(lienDemande('dewdrop', { code: 'ABC234', nom: 'Sortie Caen', etat: ETAT }))
+verifie('la demande vise la page de jumelage de DewDrop, parametres dans le fragment',
+  urlDemandeDewdrop.origin === 'https://dewdrop.heianenterprise.com'
+  && urlDemandeDewdrop.pathname === '/jumeler.html' && urlDemandeDewdrop.search === '',
+  urlDemandeDewdrop.href)
+const pDemandeDewdrop = new URLSearchParams(urlDemandeDewdrop.hash.slice(1))
+verifie('ses parametres sont ceux du protocole',
+  pDemandeDewdrop.get('de') === 'arpente' && pDemandeDewdrop.get('code') === 'ABC234'
+  && pDemandeDewdrop.get('nom') === 'Sortie Caen' && pDemandeDewdrop.get('etat') === ETAT,
+  urlDemandeDewdrop.hash)
+const pReponseDewdrop = new URLSearchParams(
+  new URL(lienReponse('dewdrop', { code: 'ABC234', pour: 'QRST6789', etat: ETAT })).hash.slice(1))
+verifie('la reponse nomme le cercle DewDrop',
+  pReponseDewdrop.get('pour') === 'QRST6789' && pReponseDewdrop.get('code') === 'ABC234')
+verifie('demander a rejoindre le jumeau DewDrop',
+  lienRejoindre('dewdrop', 'QRST6789') === 'https://dewdrop.heianenterprise.com/rejoindre.html#code=QRST6789')
+verifie('entrer dans DewDrop est une demande, dans Agora non',
+  adhesionSurDemande('dewdrop') && !adhesionSurDemande('agora'))
+verifie('les deux apps jumelles sont proposees', APPS_JUMELLES.join(',') === 'agora,dewdrop')
+verifie('le bouton annonce une demande pour DewDrop',
+  libelleRejoindre('dewdrop') === 'Demander à rejoindre dans DewDrop'
+  && libelleRejoindre('agora') === 'Rejoindre aussi dans Agora')
+verifie('DewDrop parle de cercles', motGroupe('dewdrop') === 'cercle' && motGroupe('agora') === 'groupe')
 
 console.log('\n--- Liens recus par l\'app ---')
 verifie('jumeler.html mene a l\'ecran de jumelage',

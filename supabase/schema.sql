@@ -270,17 +270,21 @@ revoke execute on function compte_requis(), generate_join_code(), is_group_membe
 grant execute on function compte_requis(), generate_join_code(), is_group_member(uuid),
   shares_group_with(uuid), preview_group_by_code(text), join_group_by_code(text) to authenticated;
 
--- ── Jumelage avec Agora, et changement du code d'un groupe ──────────
--- Un groupe peut avoir un jumeau dans Agora (agendas partagés) : ses membres en
--- voient le code d'invitation (« Rejoindre aussi dans Agora »). Les deux apps ne
--- se parlent pas, elles s'ouvrent l'une l'autre par des liens ; le protocole est
--- dans docs/liens-inter-apps.md du dépôt méta.
+-- ── Jumelage avec Agora et DewDrop, et changement du code d'un groupe ──
+-- Un groupe peut avoir un jumeau dans Agora (agendas partagés) et un dans
+-- DewDrop (cercles où l'on s'envoie des pensées), au plus un par app : ses
+-- membres en voient le code (« Rejoindre aussi dans Agora », « Demander à
+-- rejoindre dans DewDrop » — entrer dans un cercle est une demande que son
+-- créateur accepte). Les apps ne se parlent pas, elles s'ouvrent l'une l'autre
+-- par des liens ; le protocole est dans docs/liens-inter-apps.md du dépôt méta.
+-- Migrations : 20261007_jumelage, 20261008_jumelage_droits, 20261010_jumelage_dewdrop.
 --   - les membres lisent le jumeau ; le créateur seul l'ajoute ou le défait ;
 --   - PAS de mise à jour : un jumeau ne se remplace pas, on le défait d'abord.
 --     Une demande forgée, acceptée sur un groupe déjà jumelé, redirigerait sinon
 --     tous les membres vers un autre groupe Agora sans que personne le voie ;
---   - regenerate_join_code rend révocable le code donné à Agora (et tout code qui
---     a trop circulé) : l'ancien n'ouvre plus rien, les membres restent.
+--   - regenerate_join_code rend révocable le code donné aux apps jumelles (et
+--     tout code qui a trop circulé) : l'ancien n'ouvre plus rien, les membres
+--     restent. Le code étant unique, il change pour TOUS les jumeaux à la fois.
 --     SECURITY DEFINER parce que le grant par colonne n'ouvre que le statut ;
 --   - aucun outil de l'assistant IA ne lit group_twins.
 
@@ -296,13 +300,17 @@ $$;
 
 create table group_twins (
   group_id    uuid not null references groups(id) on delete cascade,
-  app         text not null check (app in ('agora')),
+  app         text not null,
   remote_code text not null,
   created_at  timestamptz not null default now(),
   primary key (group_id, app),
-  -- Le format du code dépend de l'app jumelle (Agora : 8 caractères).
+  constraint group_twins_app_check check (app in ('agora', 'dewdrop')),
+  -- Le format du code dépend de l'app jumelle (Agora, DewDrop : 8 caractères).
   constraint group_twins_remote_code_format
-    check (app = 'agora' and remote_code ~ '^[A-HJ-NP-Z2-9]{8}$')
+    check (
+      (app = 'agora' and remote_code ~ '^[A-HJ-NP-Z2-9]{8}$')
+      or (app = 'dewdrop' and remote_code ~ '^[A-HJ-NP-Z2-9]{8}$')
+    )
 );
 
 alter table group_twins enable row level security;

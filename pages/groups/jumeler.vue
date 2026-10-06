@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * Écran d'un lien de jumelage venu d'Agora (`jumeler.html#…`, traduit par
- * plugins/liensEntrants.client.ts) : une DEMANDE (choisir le groupe Arpente à
- * jumeler, ou en créer un) ou une RÉPONSE (relier le groupe dont le jumelage a
- * été lancé d'ici). Protocole : utils/jumelage.ts.
+ * Écran d'un lien de jumelage venu d'Agora ou de DewDrop (`jumeler.html#…`,
+ * traduit par plugins/liensEntrants.client.ts) : une DEMANDE (choisir le groupe
+ * Arpente à jumeler, ou en créer un) ou une RÉPONSE (relier le groupe dont le
+ * jumelage a été lancé d'ici). Protocole : utils/jumelage.ts.
  *
  * Choix non évidents :
  * - le lien est validé avant tout affichage : mal formé, il n'ouvre qu'un
@@ -23,8 +23,10 @@ import { useCityStore } from '~/stores/city'
 import { useGroupStore } from '~/stores/group'
 import { useJumelageStore } from '~/stores/jumelage'
 import {
+  libelleRejoindre,
   lienReponse,
   lireLienJumelage,
+  motGroupe,
   nomApp,
   type DemandeJumelage,
   type ReponseJumelage,
@@ -46,6 +48,10 @@ const jumelageStore = useJumelageStore()
 
 const lien = lireLienJumelage(route.query)
 const nom = lien ? nomApp(lien.app) : ''
+/** « groupe » pour Agora, « cercle » pour DewDrop. */
+const mot = lien ? motGroupe(lien.app) : 'groupe'
+/** Ce que verront les membres d'ici : DewDrop transmet une demande. */
+const boutonIci = lien ? libelleRejoindre(lien.app) : ''
 
 const chargement = ref(true)
 const besoinConnexion = ref(false)
@@ -89,7 +95,7 @@ onMounted(charger)
 
 function messageErreur(e: unknown): string {
   return e instanceof Error && e.message === 'twin_exists'
-    ? `Ce groupe est déjà jumelé avec un groupe ${nom}. Défais d'abord ce jumelage depuis la page du groupe.`
+    ? `Ce groupe est déjà jumelé avec un ${mot} ${nom}. Défais d'abord ce jumelage depuis la page du groupe.`
     : 'Le jumelage n\'a pas abouti. Réessaie.'
 }
 
@@ -165,12 +171,13 @@ async function relier(reponse: ReponseJumelage) {
 
       <template v-else>
         <p class="titre">
-          <template v-if="lien.nom">Le groupe {{ nom }} « {{ lien.nom }} » propose un jumelage.</template>
-          <template v-else>Un groupe {{ nom }} propose un jumelage.</template>
+          <template v-if="lien.nom">Le {{ mot }} {{ nom }} « {{ lien.nom }} » propose un jumelage.</template>
+          <template v-else>Un {{ mot }} {{ nom }} propose un jumelage.</template>
         </p>
         <p class="aide">
-          Ses membres verront « Rejoindre aussi dans Arpente », et ceux d'ici « Rejoindre aussi dans
-          {{ nom }} ». Chacun rejoint lui-même : personne n'est ajouté d'office.
+          Ses membres verront « Rejoindre aussi dans Arpente », et ceux d'ici « {{ boutonIci }} ».
+          Chacun rejoint lui-même : personne n'est ajouté d'office.
+          <template v-if="lien.app === 'dewdrop'">Dans DewDrop, c'est le créateur du cercle qui accepte chaque demande.</template>
         </p>
 
         <fieldset class="choix" :disabled="!!groupeCree">
@@ -214,7 +221,7 @@ async function relier(reponse: ReponseJumelage) {
         depuis la page du groupe.
       </p>
       <template v-else>
-        <p class="titre">Relier « {{ groupeRepondu.name }} » au groupe {{ nom }} choisi ?</p>
+        <p class="titre">Relier « {{ groupeRepondu.name }} » au {{ mot }} {{ nom }} choisi ?</p>
         <p v-if="erreur" class="erreur">{{ erreur }}</p>
         <button class="bouton-principal" type="button" :disabled="enCours" @click="relier(lien)">
           {{ enCours ? 'En cours...' : 'Relier' }}

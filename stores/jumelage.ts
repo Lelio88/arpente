@@ -1,15 +1,15 @@
 /**
  * Store `jumelage` — les jumelages lancés depuis cet appareil, en attente de la
- * réponse de l'autre app (Agora), par jeton envoyé.
+ * réponse de l'autre app (Agora, DewDrop), par jeton envoyé.
  *
  * Pourquoi : une réponse n'est acceptée que si elle répond à une demande partie
  * D'ICI (même jeton, même app, même code, moins de 24 h) — sinon un membre qui
  * connaît le code du groupe pourrait forger une réponse et faire rattacher un
- * groupe Agora à lui. La règle elle-même est pure : `demandeCorrespondante`
+ * groupe de l'autre app à lui. La règle elle-même est pure : `demandeCorrespondante`
  * (utils/jumelage.ts).
  *
  * Choix non évident : les demandes vivent dans le localStorage, pas en mémoire.
- * Ouvrir Agora met Arpente en arrière-plan, et Android peut le fermer avant que
+ * Ouvrir l'autre app met Arpente en arrière-plan, et Android peut le fermer avant que
  * la réponse revienne. Les demandes périmées sont retirées à chaque lecture.
  *
  * Invariant : ne contient que des jetons et des codes de groupes que l'on

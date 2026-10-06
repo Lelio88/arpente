@@ -1,12 +1,30 @@
 <script setup lang="ts">
+/**
+ * Mettre la sortie du groupe a l'agenda : l'agenda de l'appareil (editeur du
+ * systeme, ou fichier .ics sur le web), ou Agora, l'app d'agendas partages.
+ *
+ * Choix non evidents :
+ * - « Mettre dans Agora » est un simple lien (<a target="_blank">), comme le
+ *   jumelage : Capacitor confie l'adresse au systeme, qui ouvre Agora par son
+ *   App Link (ou son app web). Rien ne part vers nos serveurs, et c'est dans
+ *   Agora que la personne choisit son agenda ou un groupe, puis enregistre ;
+ * - si le groupe a un jumeau Agora, son code part dans le lien : Agora
+ *   choisit ce groupe d'avance, si la personne en est membre (utils/rdvAgora) ;
+ * - les deux chemins decrivent la meme sortie (titre, heure, duree, etapes).
+ *
+ * Invariant : aucun code de groupe dans le titre, le lieu ou la description.
+ */
 import type { DecidedRoute, Poi } from '~/types'
 import { useCalendar } from '~/composables/useCalendar'
+import { lienRdvAgora } from '~/utils/rdvAgora'
 
 const props = defineProps<{
   decision: DecidedRoute
   pois: Poi[]
   nomDuGroupe: string
   ville: string
+  /** Le code du groupe jumeau dans Agora, s'il y en a un. */
+  codeJumeauAgora?: string | null
 }>()
 
 const { isAjoutEnCours, erreur, ajouterAuCalendrier } = useCalendar()
@@ -52,18 +70,32 @@ const dureeLisible = computed(() => {
   return m === 0 ? `${h} h` : `${h} h ${String(m).padStart(2, '0')}`
 })
 
+const titre = computed(() => `${props.nomDuGroupe} — ${props.ville}`)
+
+const description = computed(() => [
+  `Parcours de ${etapes.value.length} lieux a ${props.ville}.`,
+  '',
+  ...etapes.value.map((nom, i) => `${i + 1}. ${nom}`),
+].join('\n'))
+
+/** L'adresse qui ouvre Agora sur cette sortie ; `null` tant que la date est invalide. */
+const lienAgora = computed(() => lienRdvAgora({
+  titre: titre.value,
+  debut: new Date(debut.value),
+  dureeMinutes: dureeMinutes.value,
+  lieu: etapes.value[0],
+  description: description.value,
+  codeGroupeAgora: props.codeJumeauAgora,
+}))
+
 async function ajouter() {
   confirmation.value = null
   const resultat = await ajouterAuCalendrier({
-    titre: `${props.nomDuGroupe} — ${props.ville}`,
+    titre: titre.value,
     debut: new Date(debut.value),
     finOuDuree: dureeMinutes.value,
     lieu: etapes.value[0],
-    description: [
-      `Parcours de ${etapes.value.length} lieux a ${props.ville}.`,
-      '',
-      ...etapes.value.map((nom, i) => `${i + 1}. ${nom}`),
-    ].join('\n'),
+    description: description.value,
     // Stable et derive du groupe : rejouer l'ajout met a jour l'evenement
     // existant au lieu d'en creer un second.
     uid: `arpente-${props.decision.groupId}@heianenterprise.com`,
@@ -92,6 +124,16 @@ async function ajouter() {
 
     <p v-if="erreur" class="agenda-erreur">{{ erreur }}</p>
     <p v-else-if="confirmation" class="agenda-confirmation">{{ confirmation }}</p>
+
+    <template v-if="lienAgora">
+      <a :href="lienAgora" target="_blank" rel="noopener" class="agenda-bouton agenda-bouton-secondaire">
+        Mettre dans Agora
+      </a>
+      <p class="agenda-aide">
+        Agora s'ouvre sur ce rendez-vous : choisissez votre agenda ou un de vos groupes, puis enregistrez.
+        <template v-if="codeJumeauAgora">Le groupe jumeau y est propose d'avance.</template>
+      </p>
+    </template>
   </div>
 </template>
 
@@ -159,6 +201,20 @@ input[type='datetime-local'] {
     opacity: 0.6;
     cursor: not-allowed;
   }
+}
+
+.agenda-bouton-secondaire {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  background: transparent;
+  border: 1px solid $color-accent;
+}
+
+.agenda-aide {
+  font-size: $font-size-xs;
+  color: $color-text-muted;
+  margin: 0;
 }
 
 .agenda-erreur {

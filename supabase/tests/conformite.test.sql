@@ -1,5 +1,5 @@
 -- Test de conformité de la couche groupes : comptes requis, cloisonnement des
--- pseudos, droits sur les groupes, jumelage avec Agora et changement de code,
+-- pseudos, droits sur les groupes, jumelage avec Agora et DewDrop, changement de code,
 -- accès d'assistant IA, suppression par l'utilisateur, purge.
 --
 -- À jouer sur une base JETABLE portant schema.sql (ou le schéma d'origine +
@@ -166,7 +166,7 @@ do $$ begin
   end if;
 end $$;
 
--- ── Jumelage avec Agora : le créateur écrit, les membres lisent ─────────
+-- ── Jumelage avec Agora et DewDrop : le créateur écrit, les membres lisent
 -- B, simple membre de G1, ne jumelle pas.
 do $$ begin
   begin
@@ -182,7 +182,7 @@ end $$;
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated","is_anonymous":false}';
 do $$ begin
   begin
-    insert into group_twins (group_id, app, remote_code) values ('10000000-0000-0000-0000-000000000001', 'dewdrop', 'WXYZ2345');
+    insert into group_twins (group_id, app, remote_code) values ('10000000-0000-0000-0000-000000000001', 'deckhand', 'WXYZ2345');
     raise exception 'une app inconnue a été jumelée';
   exception when check_violation then null;
   end;
@@ -191,8 +191,27 @@ do $$ begin
     raise exception 'un code Agora mal formé a été enregistré';
   exception when check_violation then null;
   end;
+  begin
+    insert into group_twins (group_id, app, remote_code) values ('10000000-0000-0000-0000-000000000001', 'dewdrop', 'ABC234');
+    raise exception 'un code DewDrop mal formé a été enregistré';
+  exception when check_violation then null;
+  end;
 end $$;
 insert into group_twins (group_id, app, remote_code) values ('10000000-0000-0000-0000-000000000001', 'agora', 'WXYZ2345');
+-- Un jumeau par app : un cercle DewDrop s'ajoute à côté du groupe Agora, sans le
+-- remplacer, et ne se double pas plus que lui.
+insert into group_twins (group_id, app, remote_code) values ('10000000-0000-0000-0000-000000000001', 'dewdrop', 'QRST6789');
+do $$ begin
+  if (select count(*) from group_twins where group_id = '10000000-0000-0000-0000-000000000001') <> 2 then
+    raise exception 'un jumeau DewDrop ne vit pas à côté du jumeau Agora';
+  end if;
+  begin
+    insert into group_twins (group_id, app, remote_code) values ('10000000-0000-0000-0000-000000000001', 'dewdrop', 'WXYZ2345');
+    raise exception 'un second jumeau DewDrop a été ajouté';
+  exception when unique_violation then null;
+  end;
+end $$;
+delete from group_twins where group_id = '10000000-0000-0000-0000-000000000001' and app = 'dewdrop';
 do $$ begin
   begin
     insert into group_twins (group_id, app, remote_code) values ('10000000-0000-0000-0000-000000000001', 'agora', 'QRST6789');

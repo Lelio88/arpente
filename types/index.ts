@@ -129,11 +129,12 @@ export interface Group {
 }
 
 /**
- * Le jumeau d'un groupe dans une autre app (Agora) : le code pour y rejoindre
- * le groupe jumeau. Protocole : utils/jumelage.ts.
+ * Le jumeau d'un groupe dans une autre app (Agora, DewDrop), au plus un par
+ * app : le code pour y rejoindre le groupe jumeau — pour DewDrop, pour demander
+ * à y entrer. Protocole : utils/jumelage.ts.
  */
 export interface GroupTwin {
-  app: 'agora'
+  app: 'agora' | 'dewdrop'
   remoteCode: string
 }
 

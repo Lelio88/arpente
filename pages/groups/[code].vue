@@ -90,6 +90,10 @@ const auteurDecision = computed(() => {
   return groupStore.members.find(m => m.userId === id)?.handle ?? 'un membre'
 })
 
+/** Le code du jumeau Agora : « Mettre dans Agora » y choisit ce groupe d'avance. */
+const codeJumeauAgora = computed(() =>
+  groupStore.twins.find(t => t.app === 'agora')?.remoteCode ?? null)
+
 const estCreateur = computed(() =>
   !!groupStore.currentGroup && groupStore.currentGroup.createdBy === authStore.userId)
 const confirmeSuppression = ref(false)
@@ -194,6 +198,7 @@ async function rafraichir() {
           :pois="poisDuGroupe"
           :nom-du-groupe="groupStore.currentGroup.name"
           :ville="groupStore.currentGroup.city === 'caen' ? 'Caen' : 'Troyes'"
+          :code-jumeau-agora="codeJumeauAgora"
         />
 
         <p class="decision-aide">

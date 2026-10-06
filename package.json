@@ -15,7 +15,7 @@
     "download-basemap": "tsx scripts/download-basemap.ts",
     "compile-targets": "tsx scripts/compile-targets.ts",
     "gen-jingle": "tsx scripts/gen-intro-jingle.ts",
-    "verif": "tsx verif/agregation.ts && tsx verif/decision.ts && tsx verif/connexion.ts && tsx verif/ics.ts && tsx verif/session.ts && tsx verif/jumelage.ts"
+    "verif": "tsx verif/agregation.ts && tsx verif/decision.ts && tsx verif/connexion.ts && tsx verif/ics.ts && tsx verif/session.ts && tsx verif/jumelage.ts && tsx verif/rdvAgora.ts"
   },
   "dependencies": {
     "@aparajita/capacitor-secure-storage": "^8.0.1",
